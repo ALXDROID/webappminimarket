@@ -1,0 +1,13 @@
+{
+  "name": "MiniMarket App",
+  "short_name": "MiniMarket",
+  "start_url": "index.html",
+  "display": "standalone",
+  "icons": [
+    {
+      "src": "pan.jpg",
+      "sizes": "192x192",
+      "type": "image/jpg"
+    }
+  ]
+}
