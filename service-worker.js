@@ -2,11 +2,11 @@ self.addEventListener("install", e => {
   e.waitUntil(
     caches.open("minimarket-v1").then(cache => {
       return cache.addAll([
-        "/",
-        "index.html",
-        "carrito.html",
-        "app.js",
-        "manifest.json"
+        "./",
+        "./index.html",
+        "./carrito.html",
+        "./app.js",
+        "./manifest.json"
       ]);
     })
   );
@@ -14,6 +14,8 @@ self.addEventListener("install", e => {
 
 self.addEventListener("fetch", e => {
   e.respondWith(
-    caches.match(e.request).then(resp => resp || fetch(e.request))
+    caches.match(e.request).then(resp => {
+      return resp || fetch(e.request);
+    })
   );
 });
