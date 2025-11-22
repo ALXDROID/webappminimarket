@@ -69,7 +69,7 @@ async function login(){
   }
 
   try {
-    const res = await fetch("https://marketapp.kesug.com/api/login2.php", {
+    const res = await fetch("https://marketapp.kesug.com/api/login.php", {
       method: "POST",
       headers: {"Content-Type": "application/json"},
       body: JSON.stringify({ nombre, telefono })
