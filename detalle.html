@@ -45,6 +45,72 @@ body {
 
 <body>
 
+<div id="detalle" class="p-3 text-center">Cargando...</div>
+
+<script src="app.js"></script>
+
+<script>
+// ============================================================
+// Esperamos a que productos se carguen desde el backend
+// ============================================================
+
+document.addEventListener("DOMContentLoaded", async () => {
+  await cargarProductos();   // <-- IMPORTANTE
+  construirDetalleDesdeURL();
+});
+</script>
+
+</body>
+</html>
+
+
+<!-- <!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>Detalle del Producto</title>
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<style>
+body {
+  background: #f2f2f2;
+  font-family: 'Arial Rounded MT', sans-serif;
+}
+.top-img {
+  width: 100%;
+  height: 260px;
+  object-fit: cover;
+  border-bottom-left-radius: 25px;
+  border-bottom-right-radius: 25px;
+}
+.desc-box {
+  margin-top: -20px;
+  background: white;
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+}
+.btn-add {
+  background: #00b894;
+  color: white;
+  border-radius: 10px;
+  font-size: 22px;
+  padding: 12px;
+}
+.fav-btn {
+  font-size: 30px;
+  background: none;
+  border: none;
+  color: #ff7675;
+}
+</style>
+</head>
+
+<body>
+
 <div id="detalle"></div>
 
 <script src="app.js"></script>
@@ -78,3 +144,4 @@ document.getElementById("detalle").innerHTML = `
 
 </body>
 </html>
+ -->

@@ -207,7 +207,92 @@ function eliminar(id) {
 // -------------------------
 // ENVIAR PEDIDO
 // -------------------------
-function enviarPedido() {
+async function enviarPedido() {
+
+  const usuario = JSON.parse(localStorage.getItem("usuario") || "null");
+  if (!usuario) {
+    alert("Debes iniciar sesión para enviar un pedido.");
+    location.href = "login.html";
+    return;
+  }
+
+  const tipo = localStorage.getItem("tipoPedido") || "retiro";
+  const carrito = obtenerCarrito();
+
+  if (carrito.length === 0) {
+    alert("Tu carrito está vacío.");
+    return;
+  }
+
+  // --- Construcción de pedido ---
+  const body = {
+    id_usuario: usuario.id,     // viene desde login.php backend
+    tipo_pedido: tipo,          // "retiro" o "delivery"
+    items: carrito              // [{id, cantidad}]
+  };
+
+  try {
+    const res = await fetch("https://marketApp.kesug.com/api/crearPedido.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+
+    const data = await res.json();
+
+    if (!data.success) {
+      alert("Error al enviar pedido: " + (data.error || "Desconocido"));
+      return;
+    }
+
+    // --- Limpiar carrito ---
+    localStorage.removeItem("carrito");
+
+    // --- Guardar historial local (opcional) ---
+    let hist = JSON.parse(localStorage.getItem("historial") || "[]");
+    hist.push({
+      id_pedido: data.id_pedido,
+      total: data.total,
+      fecha: new Date().toLocaleString()
+    });
+    localStorage.setItem("historial", JSON.stringify(hist));
+
+    // --- Notificación bonita ---
+    noti("Pedido Nº " + data.id_pedido + " enviado 🎉");
+
+    // --- Redirigir ---
+    setTimeout(() => {
+      location.href = "index.html";
+    }, 1400);
+
+  } catch (e) {
+    alert("Error de conexión con el servidor.");
+    console.error(e);
+  }
+
+}
+function noti(msg){
+  const box = document.createElement("div");
+  box.style.position = "fixed";
+  box.style.bottom = "20px";
+  box.style.left = "50%";
+  box.style.transform = "translateX(-50%)";
+  box.style.background = "#00b894";
+  box.style.color = "white";
+  box.style.padding = "15px 25px";
+  box.style.borderRadius = "12px";
+  box.style.boxShadow = "0 6px 18px rgba(0,0,0,0.25)";
+  box.style.zIndex = "9999";
+  box.style.fontSize = "18px";
+  box.innerText = msg;
+
+  document.body.appendChild(box);
+  navigator.vibrate?.(80);
+
+  setTimeout(() => box.remove(), 2000);
+}
+
+/*function enviarPedido() {
   const tipo = localStorage.getItem("tipoPedido") || "retiro";
   alert("Pedido enviado (" + tipo + ")");
     let total = document.getElementById("total").textContent.replace("$","");
@@ -220,7 +305,7 @@ function enviarPedido() {
 
   localStorage.setItem("historial", JSON.stringify(hist));
   alert("Pedido registrado 🎉");
-}
+}*/
 
 // -------------------------
 // DARK MODE

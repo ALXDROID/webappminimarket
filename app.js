@@ -1,160 +1,260 @@
-const productos = [
-  {id:1, nombre:"Coca Cola 1.5L", precio:1900, categoria:"Bebidas", img:"coca.jpg"},
-  {id:2, nombre:"Pan Molde", precio:1300,categoria:"Panadería", img:"pan.jpg"},
-  {id:3, nombre:"Arroz 1kg", precio:1200,categoria:"Abarrotes", img:"arroz.jpg"},
-];
+/* ============================================================
+   PRODUCTOS (por ahora local, luego MySQL)
+   ============================================================ */
+/*const productos = [
+  // 🥤 BEBIDAS
+  {id:1, nombre:"Coca Cola 1.5L", precio:1900, categoria:"Bebidas", img:"coca15.jpg"},
+  {id:2, nombre:"Coca Cola Zero 1.5L", precio:1950, categoria:"Bebidas", img:"cocazero15.jpg"},
+  {id:3, nombre:"Pepsi 1.5L", precio:1800, categoria:"Bebidas", img:"pepsi15.jpg"},
+  {id:4, nombre:"Fanta Naranja 1.5L", precio:1700, categoria:"Bebidas", img:"fanta15.jpg"},
+  {id:5, nombre:"Sprite 1.5L", precio:1700, categoria:"Bebidas", img:"sprite15.jpg"},
+  {id:6, nombre:"Monster Energy 473ml", precio:1800, categoria:"Bebidas", img:"monster.jpg"},
+  {id:7, nombre:"Red Bull 250ml", precio:1600, categoria:"Bebidas", img:"redbull.jpg"},
 
+  // 🍞 PANADERÍA
+  {id:8, nombre:"Pan Molde Blanco Ideal", precio:1300, categoria:"Panadería", img:"panmolde.jpg"},
+  {id:9, nombre:"Pan Molde Integral Ideal", precio:1400, categoria:"Panadería", img:"moldeintegral.jpg"},
+  {id:10, nombre:"Marraqueta 4 unidades", precio:1000, categoria:"Panadería", img:"marraqueta.jpg"},
+  {id:11, nombre:"Hallulla 4 unidades", precio:900, categoria:"Panadería", img:"hallulla.jpg"},
+  {id:12, nombre:"Queque Marmoleado", precio:2500, categoria:"Panadería", img:"queque.jpg"},
+  {id:13, nombre:"Donuts (pack 4)", precio:1800, categoria:"Panadería", img:"donuts.jpg"},
+
+  // 🧂 ABARROTES
+  {id:14, nombre:"Arroz Tucapel 1kg", precio:1200, categoria:"Abarrotes", img:"arroz.jpg"},
+  {id:15, nombre:"Fideos Carozzi 400g", precio:900, categoria:"Abarrotes", img:"fideos.jpg"},
+  {id:16, nombre:"Aceite Maravilla 1L", precio:1900, categoria:"Abarrotes", img:"aceite.jpg"},
+  {id:17, nombre:"Azúcar Iansa 1kg", precio:1300, categoria:"Abarrotes", img:"azucar.jpg"},
+  {id:18, nombre:"Sal 1kg", precio:600, categoria:"Abarrotes", img:"sal.jpg"},
+  {id:19, nombre:"Atún Lomitos en Agua", precio:1100, categoria:"Abarrotes", img:"atun.jpg"},
+  {id:20, nombre:"Porotos Hallados 1kg", precio:1700, categoria:"Abarrotes", img:"porotos.jpg"},
+  {id:21, nombre:"Salsa de Tomate", precio:700, categoria:"Abarrotes", img:"salsa.jpg"},
+  {id:22, nombre:"Café Nescafé Tradición 170g", precio:3900, categoria:"Abarrotes", img:"cafe.jpg"},
+];*/
+let productos = [];
+
+async function cargarProductos(){
+  try {
+    const res = await fetch("https://marketApp.kesug.com/api/getProductos.php");
+    const data = await res.json();
+
+    if(data.success){
+
+      productos = data.productos.map(p => ({
+        ...p,
+        precio: Number(p.precio), // Convertir DECIMAL → número
+        img: "https://marketApp.kesug.com/uploads/" + p.imagen // URL completa
+      }));
+
+      mostrarProductos(); // ya funciona con backend
+    } 
+    else {
+      alert("No se pudieron cargar los productos");
+    }
+
+  } catch (error) {
+    alert("Error conectando al servidor de productos");
+    console.error(error);
+  }
+}
+
+
+/* Helper */
+function $(id){ return document.getElementById(id); }
+
+/* ============================================================
+   DARK MODE
+   ============================================================ */
 function toggleDark(){
   document.body.classList.toggle("dark");
   localStorage.setItem("darkmode", document.body.classList.contains("dark"));
 }
 
-// cargar estado
-if (localStorage.getItem("darkmode") === "true") {
+if(localStorage.getItem("darkmode") === "true"){
   document.body.classList.add("dark");
 }
-function filtrarCat(cat){
-  if(cat === 'Todos') return mostrarProductos();
 
-  const cont = document.getElementById("productos");
-  cont.innerHTML = "";
+/* ============================================================
+   LISTADO DE PRODUCTOS
+   ============================================================ */
+function mostrarProductos(lista = productos){
+  const div = $("productos");
+  if(!div) return;
 
-  productos.filter(p => p.categoria === cat)
-    .forEach(p => {
-      cont.innerHTML += `
-      <div class="col-6">
-        <div class="product-card">
-          <img src="${p.img}">
-          <h6 class="mt-2 fw-bold">${p.nombre}</h6>
-          <div class="d-flex justify-content-between align-items-center">
-            <span class="price-tag">$${p.precio}</span>
-            <button class="btn-add" onclick="agregar(${p.id})">+</button>
-          </div>
-        </div>
-      </div>`;
-    });
-}
-document.getElementById("btnEnviar").onclick = ()=>{
-  const tipo = document.getElementById("tipoPedido").value;
-
-  alert("Pedido enviado como: " + tipo);
-};
-
-function mostrarProductos() {
-  const div = document.getElementById("productos");
-  if (!div) return;
-
-  productos.forEach(p => {
+  div.innerHTML = "";
+  lista.forEach(p => {
     div.innerHTML += `
-      <div class="col-6">
-        <div class="product-card">
-          <img src="${p.img}">
-          
-          <h6 class="mt-2 fw-bold">${p.nombre}</h6>
-
-          <div class="d-flex justify-content-between align-items-center">
-            <span class="price-tag">$${p.precio}</span>
-            <button class="btn-add" onclick="agregar(${p.id})">+</button>
-          </div>
+    <div class="col-6">
+      <div class="product-card" onclick="verDetalle(${p.id})" style="cursor:pointer;">
+        <img src="${p.img}">
+        <h6 class="mt-2 fw-bold">${p.nombre}</h6>
+        <div class="d-flex justify-content-between align-items-center">
+          <span class="price-tag">$${p.precio}</span>
+          <button class="btn-add" onclick="agregar(${p.id}); event.stopPropagation();">+</button>
         </div>
       </div>
-    `;
+    </div>`;
   });
 }
 
-function obtenerCarrito(){
-  return JSON.parse(localStorage.getItem("carrito") || "[]");
+function filtrarCat(cat){
+  if(cat === "Todos") return mostrarProductos();
+  const filtro = productos.filter(p => p.categoria === cat);
+  mostrarProductos(filtro);
 }
 
-function guardarCarrito(c){
-  localStorage.setItem("carrito", JSON.stringify(c));
+function filtrarProductos(txt){
+  if(!$("productos")) return;
+  const encontrado = productos.filter(p =>
+    p.nombre.toLowerCase().includes(txt.toLowerCase())
+  );
+  mostrarProductos(encontrado);
 }
+
+/* ============================================================
+   CARRITO — LOCALSTORAGE
+   ============================================================ */
+function obtenerCarrito(){ return JSON.parse(localStorage.getItem("carrito") || "[]"); }
+function guardarCarrito(c){ localStorage.setItem("carrito", JSON.stringify(c)); }
 
 function agregar(id){
-  let carrito = obtenerCarrito();
-  let item = carrito.find(x => x.id === id);
+  let c = obtenerCarrito();
+  let item = c.find(x => x.id === id);
 
-  if (item) item.cantidad++;
-  else carrito.push({id, cantidad:1});
+  if(item) item.cantidad++;
+  else c.push({id, cantidad:1});
 
-  guardarCarrito(carrito);
+  guardarCarrito(c);
   alert("Agregado al carrito");
 }
 
 function mostrarCarrito(){
-  const div = document.getElementById("listaCarrito");
-  if (!div) return;
+  const div = $("listaCarrito");
+  if(!div) return;
 
-  let carrito = obtenerCarrito();
+  let c = obtenerCarrito();
   div.innerHTML = "";
 
-  carrito.forEach(item => {
+  c.forEach(item => {
     let p = productos.find(x => x.id === item.id);
-
     div.innerHTML += `
-      <div class="cart-card mb-2">
-        <div class="d-flex justify-content-between">
-          <div>
-      r      <strong>${p.nombre}</strong><br>
-            Cantidad: ${item.cantidad}
-          </div>
-          <div class="text-success fw-bold">
-            $${p.precio * item.cantidad}
-          </div>
+    <div class="cart-card mb-2">
+      <div class="d-flex justify-content-between">
+        <div>
+          <strong>${p.nombre}</strong><br>
+          Cantidad: ${item.cantidad}
         </div>
+        <div class="text-success fw-bold">$${p.precio * item.cantidad}</div>
       </div>
-    `;
+    </div>`;
   });
 }
-function filtrarProductos(texto) {
-  const div = document.getElementById("productos");
-  div.innerHTML = "";
 
-  productos
-    .filter(p => p.nombre.toLowerCase().includes(texto.toLowerCase()))
-    .forEach(p => {
-      div.innerHTML += `
-      <div class="col-6">
-        <div class="product-card">
-          <img src="${p.img}">
-          <h6 class="mt-2 fw-bold">${p.nombre}</h6>
-          <div class="d-flex justify-content-between align-items-center">
-            <span class="price-tag">$${p.precio}</span>
-            <button class="btn-add" onclick="agregar(${p.id})">+</button>
-          </div>
-        </div>
-      </div>`;
-    });
-}
-function obtenerFavs(){
-  return JSON.parse(localStorage.getItem("favoritos") || "[]");
-}
-function logout(){
-  localStorage.removeItem("usuario");
-  window.location.href = "login.html";
+/* ============================================================
+   DETALLE
+   ============================================================ */
+function verDetalle(id){
+  location.href = "detalle.html?id=" + id;
 }
 
+function construirDetalleDesdeURL(){
+  const cont = $("detalle");
+  if(!cont) return;
+
+  const id = new URLSearchParams(location.search).get("id");
+
+  const p = productos.find(x => x.id == id);
+  if(!p){
+    cont.innerHTML = `
+    <div class="p-4 text-center">
+      <h2>❌ Producto no encontrado</h2>
+      <button onclick="location.href='index.html'" class="btn btn-success mt-3">Volver</button>
+    </div>`;
+    return;
+  }
+
+  cont.innerHTML = `
+  <img src="${p.img}" class="top-img">
+  <div class="desc-box">
+    <div class="d-flex justify-content-between">
+      <h3>${p.nombre}</h3>
+      <button class="fav-btn" onclick="toggleFav(${p.id})">❤️</button>
+    </div>
+
+    <h2 class="text-success fw-bold">$${p.precio}</h2>
+    <p class="text-muted">Producto seleccionado del MiniMarket.</p>
+
+    <button onclick="agregar(${p.id})" class="btn btn-add w-100 mt-3">
+      Añadir al carrito 🛒
+    </button>
+
+    <button onclick="history.back()" class="btn btn-secondary w-100 mt-3">
+      Volver
+    </button>
+  </div>`;
+}
+
+/* ============================================================
+   FAVORITOS
+   ============================================================ */
+function obtenerFavs(){ return JSON.parse(localStorage.getItem("favoritos") || "[]"); }
 function toggleFav(id){
-  let fav = obtenerFavs();
-
-  if(fav.includes(id)){
-    fav = fav.filter(x=>x!==id);
-  } else {
-    fav.push(id);
+  let f = obtenerFavs();
+  if(f.includes(id)) f = f.filter(x => x !== id);
+  else{
+    f.push(id);
     navigator.vibrate?.(50);
   }
-
-  localStorage.setItem("favoritos", JSON.stringify(fav));
-  alert("Favoritos actualizado ❤️");
+  localStorage.setItem("favoritos", JSON.stringify(f));
 }
 
-window.addEventListener("DOMContentLoaded", () => {
-  mostrarProductos();
-mostrarCarrito();
-  const buscador = document.getElementById("buscar");
-  if (buscador) {
-    buscador.addEventListener("input", e => {
-      filtrarProductos(e.target.value);
-    });
+/* ============================================================
+   LOGIN / LOGOUT
+   ============================================================ */
+function logout(){
+  localStorage.removeItem("usuario");
+  location.href = "login.html";
+}
+
+/* ============================================================
+   INIT — SOLO CARGA LO QUE CORRESPONDE A CADA PÁGINA
+   ============================================================ */
+document.addEventListener("DOMContentLoaded", async () => {
+
+  // Página principal: carga productos desde backend
+  if($("productos")) {
+    await cargarProductos();
+    mostrarProductos();
   }
+
+  // Buscador
+  if($("buscar")) {
+    $("buscar").addEventListener("input", e => filtrarProductos(e.target.value));
+  }
+
+  // Carrito: también necesita productos desde backend
+  if($("listaCarrito")) {
+    await cargarProductos(); // NECESARIO para que carrito tenga precios e imágenes
+    mostrarCarritoPro();
+  }
+
+  // Detalle del producto
+  if($("detalle")) {
+    await cargarProductos(); // también necesario
+    construirDetalleDesdeURL();
+  }
+
 });
+
+
+/*document.addEventListener("DOMContentLoaded", () => {
+
+  if($("productos")) mostrarProductos();
+
+  if($("buscar"))
+    $("buscar").addEventListener("input", e => filtrarProductos(e.target.value));
+
+  if($("listaCarrito")) mostrarCarrito();
+
+  if($("detalle")) construirDetalleDesdeURL();*/
+
+

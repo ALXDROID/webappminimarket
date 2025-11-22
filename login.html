@@ -57,8 +57,42 @@ body {
 
   <button onclick="login()" class="btn btn-login w-100">Ingresar</button>
 </div>
-
 <script>
+async function login(){
+  const nombre = document.getElementById("nombre").value.trim();
+  const telefono = document.getElementById("telefono").value.trim();
+
+  if(nombre === "" || telefono === ""){
+    alert("Completa todos los campos");
+    return;
+  }
+
+  try {
+    const res = await fetch("https://marketApp.kesug.com/api/login.php", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ nombre, telefono })
+    });
+
+    const data = await res.json();
+
+    if (!data.success) {
+      alert("Error: " + (data.error || "No se pudo iniciar sesión"));
+      return;
+    }
+
+    // Guardamos el usuario real que viene desde la BD
+    localStorage.setItem("usuario", JSON.stringify(data.user));
+
+    window.location.href = "index.html";
+
+  } catch (e) {
+    alert("Error conectando con el servidor");
+  }
+}
+</script>
+
+<!-- <script>
 function login(){
   const nombre = document.getElementById("nombre").value.trim();
   const telefono = document.getElementById("telefono").value.trim();
@@ -73,7 +107,7 @@ function login(){
 
   window.location.href = "index.html";
 }
-</script>
+</script> -->
 
 </body>
 </html>
