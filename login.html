@@ -69,7 +69,7 @@ async function login(){
   }
 
   try {
-    const res = await fetch("https://www.marketapp.kesug.com/api/login2.php", {
+    const res = await fetch("https://marketapp.kesug.com/htdocs/api/login2.php", {
       method: "POST",
       headers: {"Content-Type": "application/json"},
       body: JSON.stringify({ nombre, telefono })
@@ -98,22 +98,7 @@ async function login(){
 
 </script>
 
-<!-- <script>
-function login(){
-  const nombre = document.getElementById("nombre").value.trim();
-  const telefono = document.getElementById("telefono").value.trim();
 
-  if(nombre === "" || telefono === ""){
-    alert("Completa todos los campos");
-    return;
-  }
-
-  const usuario = { nombre, telefono };
-  localStorage.setItem("usuario", JSON.stringify(usuario));
-
-  window.location.href = "index.html";
-}
-</script> -->
 
 </body>
 </html>
