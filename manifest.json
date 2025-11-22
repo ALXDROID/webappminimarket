@@ -1,7 +1,7 @@
 {
   "name": "MiniMarket App",
   "short_name": "MiniMarket",
-  "start_url": "./login.html",
+  "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "background_color": "#ffffff",
