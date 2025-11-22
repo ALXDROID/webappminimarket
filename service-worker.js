@@ -1,8 +1,7 @@
 const CACHE_NAME = "minimarket-v3";
 
 // RUTA BASE DEL REPO EN GITHUB PAGES
-const BASE = "/webappminimarket
-/";
+const BASE = "/webappminimarket/";
 
 const FILES_TO_CACHE = [
   BASE,
