@@ -16,9 +16,16 @@ self.addEventListener("install", e => {
 });
 
 self.addEventListener("fetch", e => {
+
+  // Si el request NO es del mismo origen → no lo interceptes
+  if (!e.request.url.startsWith(self.location.origin)) {
+    return;
+  }
+
   e.respondWith(
     caches.match(e.request).then(resp => {
       return resp || fetch(e.request);
     })
   );
 });
+
