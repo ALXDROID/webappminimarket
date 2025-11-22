@@ -1,13 +1,10 @@
 {
   "name": "MiniMarket App",
   "short_name": "MiniMarket",
-  "start_url": "index.html",
+  "start_url": "./login.html",
+  "scope": "./",
   "display": "standalone",
-  "icons": [
-    {
-      "src": "pan.jpg",
-      "sizes": "192x192",
-      "type": "image/jpg"
-    }
-  ]
+  "background_color": "#ffffff",
+  "theme_color": "#00b894"
 }
+
