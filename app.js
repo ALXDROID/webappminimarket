@@ -1,40 +1,8 @@
-/* ============================================================
-   PRODUCTOS (por ahora local, luego MySQL)
-   ============================================================ */
-/*const productos = [
-  // 🥤 BEBIDAS
-  {id:1, nombre:"Coca Cola 1.5L", precio:1900, categoria:"Bebidas", img:"coca15.jpg"},
-  {id:2, nombre:"Coca Cola Zero 1.5L", precio:1950, categoria:"Bebidas", img:"cocazero15.jpg"},
-  {id:3, nombre:"Pepsi 1.5L", precio:1800, categoria:"Bebidas", img:"pepsi15.jpg"},
-  {id:4, nombre:"Fanta Naranja 1.5L", precio:1700, categoria:"Bebidas", img:"fanta15.jpg"},
-  {id:5, nombre:"Sprite 1.5L", precio:1700, categoria:"Bebidas", img:"sprite15.jpg"},
-  {id:6, nombre:"Monster Energy 473ml", precio:1800, categoria:"Bebidas", img:"monster.jpg"},
-  {id:7, nombre:"Red Bull 250ml", precio:1600, categoria:"Bebidas", img:"redbull.jpg"},
-
-  // 🍞 PANADERÍA
-  {id:8, nombre:"Pan Molde Blanco Ideal", precio:1300, categoria:"Panadería", img:"panmolde.jpg"},
-  {id:9, nombre:"Pan Molde Integral Ideal", precio:1400, categoria:"Panadería", img:"moldeintegral.jpg"},
-  {id:10, nombre:"Marraqueta 4 unidades", precio:1000, categoria:"Panadería", img:"marraqueta.jpg"},
-  {id:11, nombre:"Hallulla 4 unidades", precio:900, categoria:"Panadería", img:"hallulla.jpg"},
-  {id:12, nombre:"Queque Marmoleado", precio:2500, categoria:"Panadería", img:"queque.jpg"},
-  {id:13, nombre:"Donuts (pack 4)", precio:1800, categoria:"Panadería", img:"donuts.jpg"},
-
-  // 🧂 ABARROTES
-  {id:14, nombre:"Arroz Tucapel 1kg", precio:1200, categoria:"Abarrotes", img:"arroz.jpg"},
-  {id:15, nombre:"Fideos Carozzi 400g", precio:900, categoria:"Abarrotes", img:"fideos.jpg"},
-  {id:16, nombre:"Aceite Maravilla 1L", precio:1900, categoria:"Abarrotes", img:"aceite.jpg"},
-  {id:17, nombre:"Azúcar Iansa 1kg", precio:1300, categoria:"Abarrotes", img:"azucar.jpg"},
-  {id:18, nombre:"Sal 1kg", precio:600, categoria:"Abarrotes", img:"sal.jpg"},
-  {id:19, nombre:"Atún Lomitos en Agua", precio:1100, categoria:"Abarrotes", img:"atun.jpg"},
-  {id:20, nombre:"Porotos Hallados 1kg", precio:1700, categoria:"Abarrotes", img:"porotos.jpg"},
-  {id:21, nombre:"Salsa de Tomate", precio:700, categoria:"Abarrotes", img:"salsa.jpg"},
-  {id:22, nombre:"Café Nescafé Tradición 170g", precio:3900, categoria:"Abarrotes", img:"cafe.jpg"},
-];*/
 let productos = [];
 
 async function cargarProductos(){
   try {
-    const res = await fetch("https://marketApp.kesug.com/api/getProductos.php");
+    const res = await fetch("https://marketapp.kesug.com/api/getProductos.php");
     const data = await res.json();
 
     if(data.success){
@@ -42,7 +10,7 @@ async function cargarProductos(){
       productos = data.productos.map(p => ({
         ...p,
         precio: Number(p.precio), // Convertir DECIMAL → número
-        img: "https://marketApp.kesug.com/uploads/" + p.imagen // URL completa
+        img: "https://marketapp.kesug.com/uploads/" + p.imagen // URL completa
       }));
 
       mostrarProductos(); // ya funciona con backend
@@ -246,15 +214,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 
-/*document.addEventListener("DOMContentLoaded", () => {
 
-  if($("productos")) mostrarProductos();
-
-  if($("buscar"))
-    $("buscar").addEventListener("input", e => filtrarProductos(e.target.value));
-
-  if($("listaCarrito")) mostrarCarrito();
-
-  if($("detalle")) construirDetalleDesdeURL();*/
 
 
