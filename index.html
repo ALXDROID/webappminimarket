@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="manifest" href="manifest.json">
 
 <title>MiniMarket PRO</title>
 
@@ -115,7 +114,6 @@
   .dark .price-tag {
     background: #444;
   }
-
 </style>
 
 <script>
@@ -135,21 +133,19 @@ if ("serviceWorker" in navigator) {
           class="btn btn-light btn-sm btn-dark-mode">
       🌙
   </button>
-<button onclick="logout()"
-        class="btn btn-danger btn-sm position-absolute"
-        style="top:15px; left:15px;">
-  Salir
-</button>
+
   <button onclick="logout()"
         class="btn btn-danger btn-sm position-absolute"
         style="top:15px; left:15px;">
-  Salir
-</button>
+    Salir
+  </button>
 
   <div class="banner-title">🛒 MiniMarket</div>
   <div>Compra rápido y fácil</div>
+
   <div class="container mb-2">
-  <div id="userInfo" class="text-end small text-muted"></div>
+    <div id="userInfo" class="text-end small text-muted"></div>
+  </div>
 </div>
 
 <script>
@@ -159,9 +155,6 @@ if(u){
     "👤 " + u.nombre + " • " + u.telefono;
 }
 </script>
-</div>
-
-
 
 <!-- CATEGORÍAS -->
 <div class="container mb-3">
@@ -199,7 +192,9 @@ if(u){
 <script src="app.js"></script>
 
 </body>
+
 <script>
+// Redirección si no está logueado
 if (!localStorage.getItem("usuario")) {
   window.location.href = "login.html";
 }
