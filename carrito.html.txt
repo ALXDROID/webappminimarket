@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>Carrito • MiniMarket</title>
+
+<link href="bootstrap.min.css" rel="stylesheet">
+
+<style>
+  body {
+    background: #f2f2f2;
+    font-family: 'Arial Rounded MT', sans-serif;
+  }
+
+  .top-banner {
+    background: linear-gradient(135deg, #00b894, #019874);
+    padding: 30px 20px;
+    color: white;
+    border-bottom-left-radius: 25px;
+    border-bottom-right-radius: 25px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    position: relative;
+  }
+
+  .banner-title {
+    font-size: 26px;
+    font-weight: bold;
+  }
+
+  .btn-dark-mode {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+  }
+
+  .cart-item {
+    background: white;
+    border-radius: 15px;
+    padding: 15px;
+    margin-bottom: 15px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.12);
+  }
+
+  .cart-img {
+    width: 90px;
+    height: 90px;
+    border-radius: 10px;
+    object-fit: cover;
+  }
+
+  .qty-btn {
+    background: #00b894;
+    color: white;
+    border: none;
+    width: 35px;
+    height: 35px;
+    border-radius: 8px;
+    font-size: 20px;
+  }
+
+  .delete-btn {
+    background: #e74c3c;
+    border: none;
+    border-radius: 8px;
+    width: 35px;
+    height: 35px;
+    color: white;
+  }
+
+  .total-box {
+    background: white;
+    padding: 20px;
+    border-radius: 18px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.12);
+  }
+
+  body.dark { background: #1e1e1e; color: #eee; }
+  .dark .cart-item,
+  .dark .total-box { background: #2b2b2b; }
+  .dark .top-banner {
+    background: linear-gradient(135deg, #222, #111);
+  }
+</style>
+</head>
+
+<body>
+
+<!-- BANNER EDITANDO -->
+<div id="editBanner" style="
+  display:none;
+  background:#00b894;
+  color:white;
+  padding:12px;
+  text-align:center;
+  font-weight:bold;">
+  EDITANDO PEDIDO #<span id="banID"></span> — Puedes modificar productos
+</div>
+
+<!-- BOTÓN AGREGAR PRODUCTOS EN MODO EDICIÓN -->
+<div id="btnAgregarEdit" style="display:none;" class="text-center mt-3 mb-3">
+  <button onclick="agregarProductos()" 
+          class="btn btn-primary btn-lg fw-bold">
+    ➕ Agregar más productos
+  </button>
+</div>
+
+<!-- HEADER -->
+<div class="top-banner mb-4">
+  <button onclick="toggleDark()" class="btn btn-light btn-sm btn-dark-mode">🌙</button>
+  <div class="banner-title">🛍 Tu Carrito</div>
+  <div>Revisa tu pedido antes de continuar</div>
+</div>
+
+<!-- BOTÓN EDITAR USUARIO -->
+<button onclick="editarUsuario && editarUsuario()" class="btn btn-warning btn-sm mt-2">
+  ✏️ Editar mis datos
+</button>
+
+<!-- LISTA DEL CARRITO -->
+<div class="container mb-4">
+  <div id="listaCarrito"></div>
+</div>
+
+<!-- TOTAL Y PAGO -->
+<div class="container mb-5">
+  <div class="total-box">
+    <h4>Total a pagar:</h4>
+    <h2 id="total" class="text-success fw-bold">$0</h2>
+
+    <!-- MÉTODO DE PAGO -->
+    <div class="mb-3">
+      <label class="form-label fw-bold">Método de pago</label>
+      <select id="metodoPago" class="form-select form-select-lg">
+        <option value="efectivo">💵 Efectivo</option>
+        <option value="paypal">💳 PayPal</option>
+      </select>
+    </div>
+
+    <!-- DELIVERY -->
+    <div id="deliveryData" style="display:none;">
+      <label class="form-label fw-bold">Dirección</label>
+      <input id="dirEntrega" class="form-control mb-2">
+
+      <label class="form-label fw-bold">Receptor</label>
+      <input id="nomEntrega" class="form-control mb-2">
+
+      <label class="form-label fw-bold">Teléfono</label>
+      <input id="telEntrega" class="form-control mb-2" placeholder="+56 9 ...">
+    </div>
+
+    <!-- HORA -->
+    <div class="mb-3">
+      <label class="form-label fw-bold">Hora estimada</label>
+      <input type="time" id="horaEntrega" class="form-control form-control-lg"
+             min="09:30" max="22:00" required>
+      <small class="text-muted">Horario permitido: 09:30 a 22:00</small>
+    </div>
+
+    <button id="btnFinal" onclick="finalizarAccion()" 
+            class="btn btn-success w-100 py-3 fs-5 mt-3">
+      Confirmar Pedido 🔥
+    </button>
+
+  </div>
+</div>
+
+<script src="app.js"></script>
+
+<script>
+/* ============================================================
+   FLAGS DE EDICIÓN
+   ============================================================ */
+const urlParams   = new URLSearchParams(window.location.search);
+const editMode    = urlParams.get("edit") === "1";
+let   editPedidoID = localStorage.getItem("editarPedido");
+let   yaEditando   = localStorage.getItem("editando") === "1";
+
+/* ============================================================
+   CARGAR PEDIDO DESDE LA BD (SOLO LA PRIMERA VEZ)
+   ============================================================ */
+async function cargarPedidoParaEditar(idPedido) {
+  try {
+    const res  = await fetch("http://localhost/MiniMarket/api/getPedidoCompleto.php?id=" + idPedido);
+    const data = await res.json();
+
+    if (!data.success) {
+      alert("No se pudo cargar el pedido.");
+      return;
+    }
+    if (!data.editable) {
+      alert("Este pedido ya no se puede editar.");
+      return;
+    }
+
+    let carrito = [];
+    data.items.forEach(i => carrito.push({
+      id: Number(i.id),
+      cantidad: Number(i.cantidad)
+    }));
+
+    guardarCarrito(carrito);
+    mostrarCarritoPro();
+
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+/* ============================================================
+   BOTÓN "AGREGAR PRODUCTOS"
+   ============================================================ */
+function agregarProductos() {
+  localStorage.setItem("editando", "1");
+  localStorage.setItem("editarPedido", editPedidoID);
+  location.href = "index.html?edit=1";
+}
+
+/* ============================================================
+   MOSTRAR CARRITO (CON PRODUCTOS)
+   ============================================================ */
+function mostrarCarritoPro() {
+  const div = document.getElementById("listaCarrito");
+  if (!div) return;
+
+  div.innerHTML = "";
+
+  let carrito = obtenerCarrito();
+  let total = 0;
+
+  carrito.forEach(item => {
+    const p = productos.find(x => x.id === item.id);
+    if (!p) return;
+
+    const subtotal = p.precio * item.cantidad;
+    total += subtotal;
+
+    div.innerHTML += `
+      <div class="cart-item d-flex gap-3 align-items-center">
+        <img src="${p.img}" class="cart-img">
+
+        <div class="flex-grow-1">
+          <h6 class="fw-bold mb-1">${p.nombre}</h6>
+          <p class="m-0 text-success fw-bold">$${subtotal}</p>
+
+          <div class="d-flex gap-2 mt-2">
+            <button class="qty-btn" onclick="restar(${p.id})">−</button>
+            <span class="fw-bold fs-5">${item.cantidad}</span>
+            <button class="qty-btn" onclick="sumar(${p.id})">+</button>
+          </div>
+        </div>
+
+        <button class="delete-btn" onclick="eliminar(${p.id})">✕</button>
+      </div>
+    `;
+  });
+
+  document.getElementById("total").textContent = "$" + total;
+}
+
+/* ============================================================
+   SUMAR / RESTAR / ELIMINAR
+   ============================================================ */
+function sumar(id) {
+  let c = obtenerCarrito();
+  let item = c.find(x => x.id == id);
+  if (!item) return;
+
+  item.cantidad++;
+  guardarCarrito(c);
+  mostrarCarritoPro();
+}
+
+function restar(id) {
+  let c = obtenerCarrito();
+  let item = c.find(x => x.id == id);
+  if (!item) return;
+
+  if (item.cantidad > 1) item.cantidad--;
+  else c = c.filter(x => x.id != id);
+
+  guardarCarrito(c);
+  mostrarCarritoPro();
+}
+
+function eliminar(id) {
+  let c = obtenerCarrito().filter(x => x.id != id);
+  guardarCarrito(c);
+  mostrarCarritoPro();
+}
+
+/* ============================================================
+   FINALIZAR ACCIÓN (NUEVO / EDICIÓN)
+   ============================================================ */
+function finalizarAccion() {
+  const editando = localStorage.getItem("editando") === "1";
+  if (editando && editPedidoID) {
+    guardarEdicion();
+  } else {
+    enviarPedido();
+  }
+}
+
+/* ============================================================
+   ENVIAR NUEVO PEDIDO
+   ============================================================ */
+async function enviarPedido() {
+  const usuario = JSON.parse(localStorage.getItem("usuario") || "null");
+  if (!usuario) {
+    location.href = "login.html";
+    return;
+  }
+
+  const tipo = localStorage.getItem("tipoPedido") || "retiro";
+  const carrito = obtenerCarrito();
+  if (carrito.length === 0) {
+    alert("Carrito vacío");
+    return;
+  }
+
+  const metodo = document.getElementById("metodoPago").value;
+  const hora   = document.getElementById("horaEntrega").value.trim();
+  if (!hora) {
+    alert("Debes elegir hora");
+    return;
+  }
+
+  let entrega = null;
+  if (tipo === "delivery") {
+    entrega = {
+      direccion: dirEntrega.value.trim(),
+      nombre:    nomEntrega.value.trim(),
+      telefono:  telEntrega.value.trim()
+    };
+    if (!entrega.direccion || !entrega.nombre || !entrega.telefono) {
+      alert("Completa los datos de entrega");
+      return;
+    }
+  }
+
+  const body = {
+    id_usuario:  usuario.id,
+    tipo_pedido: tipo,
+    metodo_pago: metodo,
+    entrega,
+    hora,
+    items: carrito
+  };
+
+  const res = await fetch("http://localhost/MiniMarket/api/createPedido.php", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+
+  const data = await res.json();
+  if (!data.success) {
+    alert("Error: " + data.error);
+    return;
+  }
+
+  localStorage.removeItem("carrito");
+  alert("Pedido #" + data.id_pedido + " enviado ✔");
+  location.href = "index.html";
+}
+
+/* ============================================================
+   GUARDAR EDICIÓN DE PEDIDO
+   ============================================================ */
+async function guardarEdicion() {
+  const carrito = obtenerCarrito();
+  if (carrito.length === 0) {
+    alert("Carrito vacío");
+    return;
+  }
+
+  const body = {
+    id_pedido: Number(editPedidoID),
+    items: carrito
+  };
+
+  const res = await fetch("http://localhost/MiniMarket/api/updatePedido.php", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+
+  const data = await res.json();
+  if (!data.success) {
+    alert("Error: " + data.error);
+    return;
+  }
+
+  alert("Pedido actualizado ✔");
+  localStorage.removeItem("editarPedido");
+  localStorage.removeItem("editando");
+  location.href = "mispedidos.html";
+}
+
+/* ============================================================
+   MODO OSCURO
+   ============================================================ */
+if (localStorage.getItem("darkmode") === "true") {
+  document.body.classList.add("dark");
+}
+
+/* ============================================================
+   INIT ESPECÍFICO DEL CARRITO
+   ============================================================ */
+document.addEventListener("DOMContentLoaded", async () => {
+  // productos ya cargados por app.js (pero por si acaso)
+  if (!productos.length) {
+    await cargarProductos();
+  }
+
+  // Mostrar barra de edición si corresponde
+  if (editMode && editPedidoID) {
+    document.getElementById("editBanner").style.display = "block";
+    document.getElementById("banID").textContent = editPedidoID;
+    document.getElementById("btnAgregarEdit").style.display = "block";
+
+    // 👉 SOLO LA PRIMERA VEZ CARGAMOS DESDE LA BD
+    if (!yaEditando) {
+      localStorage.setItem("editando", "1");
+      await cargarPedidoParaEditar(editPedidoID);
+      yaEditando = true;
+      return; // mostrarCarritoPro ya se llamó dentro
+    }
+  }
+
+  // Si no es primera vez o no es edición → mostrar lo que haya en el carrito
+  mostrarCarritoPro();
+});
+</script>
+
+</body>
+</html>
