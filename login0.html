@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Login • MiniMarket</title>
+<link rel="manifest" href="manifest.json">
+
+<link href="bootstrap.min.css" rel="stylesheet">
+
+<style>
+body {
+  background: linear-gradient(135deg, #00b894, #019874);
+  font-family: 'Arial Rounded MT', sans-serif;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.login-box {
+  background: white;
+  padding: 30px;
+  border-radius: 20px;
+  width: 90%;
+  max-width: 380px;
+  box-shadow: 0px 6px 20px rgba(0,0,0,0.25);
+}
+
+.login-box h2 {
+  font-weight: bold;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.btn-login {
+  background: #00b894;
+  color: white;
+  font-size: 20px;
+  padding: 12px;
+  border-radius: 10px;
+  border: none;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="login-box">
+  <h2>Bienvenido 👋</h2>
+<div class="avatar-box text-center mb-3">
+  <img id="avatarPreview"
+       src="http://localhost/MiniMarket/img/avatar18_ibhr6v.png"
+       class="rounded-circle"
+       style="width:120px;height:120px;object-fit:cover;border:4px solid #00b894">
+
+  <div id="avatarOptions" class="d-flex flex-wrap justify-content-center mt-3" style="gap:8px;">
+  </div>
+</div>
+
+  <!-- Nombre -->
+  <input id="nombre" class="form-control form-control-lg mb-3"
+         placeholder="Tu nombre">
+
+  <!-- Teléfono con banderas -->
+  <div class="input-group mb-4">
+    <span class="input-group-text" id="flag-box" style="font-size: 24px;">🇨🇱</span>
+
+    <select id="pais" class="form-select" style="max-width: 110px;">
+      <option value="+56" data-flag="🇨🇱">🇨🇱 +56</option>
+      <option value="+54" data-flag="🇦🇷">🇦🇷 +54</option>
+      <option value="+51" data-flag="🇵🇪">🇵🇪 +51</option>
+      <option value="+591" data-flag="🇧🇴">🇧🇴 +591</option>
+      <option value="+55" data-flag="🇧🇷">🇧🇷 +55</option>
+      <option value="+34" data-flag="🇪🇸">🇪🇸 +34</option>
+      <option value="+1" data-flag="🇺🇸">🇺🇸 +1</option>
+    </select>
+
+    <input id="telefono" type="tel" class="form-control form-control-lg"
+           placeholder="">
+  </div>
+
+  <button onclick="login()" class="btn btn-login w-100">Ingresar</button>
+</div>
+
+
+<!-- ===========================
+     SCRIPTS
+=========================== -->
+
+<script>
+ let avatares = [
+  "http://localhost/MiniMarket/img/avatar18_ibhr6v.png",
+  "http://localhost/MiniMarket/img/avatar19_jp5vr2.png",
+  "http://localhost/MiniMarket/img/avatar20_weeikg.png",
+  "http://localhost/MiniMarket/img/avatar17_ubirol.png",
+  "http://localhost/MiniMarket/img/avatar14_drp6wb.png",
+  "http://localhost/MiniMarket/img/avatar15_gyexku.png",
+  "http://localhost/MiniMarket/img/avatar16_ks63db.png",
+  "http://localhost/MiniMarket/img/avatar10_abnwb9.png",
+  "http://localhost/MiniMarket/img/avatar13_hrbesa.png",
+  "http://localhost/MiniMarket/img/avatar11_cnclyo.png",
+  "http://localhost/MiniMarket/img/avatar6_pppi62.png",
+  "http://localhost/MiniMarket/img/avatar12_vselyz.png",
+  "http://localhost/MiniMarket/img/avatar9_hb4lhx.png",
+  "http://localhost/MiniMarket/img/avatar8_xgh3a9.png",
+  "http://localhost/MiniMarket/img/avatar5_rtg7nd.png",
+  "http://localhost/MiniMarket/img/avatar4_vvxcsf.png",
+  "http://localhost/MiniMarket/img/avatar3_w1p55d.png",
+  "http://localhost/MiniMarket/img/avatar2_g6ynyq.png",
+  "http://localhost/MiniMarket/img/avatar7_m6lyhw.png",
+  "http://localhost/MiniMarket/img/avatar1_ciei4n.png"
+];
+   
+// Cambia la banderita automáticamente
+document.getElementById("pais").addEventListener("change", function () {
+  const flag = this.options[this.selectedIndex].dataset.flag;
+  document.getElementById("flag-box").textContent = flag;
+});
+
+// Validación internacional E.164
+function validarTelefonoInternacional(tel) {
+  tel = tel.replace(/\D/g, "");
+  return tel.length >= 8 && tel.length <= 15;
+}
+
+// Normalizar a formato E.164 sin "+"
+function normalizarTelefono(pais, tel) {
+  tel = tel.replace(/\D/g, "");  
+  return pais.replace("+", "") + tel;
+}
+let avatarURL = avatares[0]; // predeterminado
+
+function mostrarOpcionesAvatar() {
+  const cont = document.getElementById("avatarOptions");
+  cont.innerHTML = "";
+
+  avatares.forEach((url, index) => {
+    const img = document.createElement("img");
+    img.src = url;
+    img.className = "rounded-circle avatar-option";
+    img.style = "width:50px;height:50px;object-fit:cover;cursor:pointer;border:2px solid transparent";
+
+    img.onclick = () => seleccionarAvatar(index);
+
+    cont.appendChild(img);
+  });
+}
+
+function seleccionarAvatar(i) {
+  avatarURL = avatares[i];
+  document.getElementById("avatarPreview").src = avatarURL;
+
+  const opciones = document.querySelectorAll(".avatar-option");
+  opciones.forEach((op, idx) => {
+    op.style.border = idx === i ? "2px solid #00b894" : "2px solid transparent";
+  });
+}
+
+async function login() {
+  const nombre = document.getElementById("nombre").value.trim();
+  const pais = document.getElementById("pais").value;
+  let telefono = document.getElementById("telefono").value.trim();
+
+  if (!nombre || !telefono) {
+    alert("Completa todos los campos");
+    return;
+  }
+
+  if (!validarTelefonoInternacional(telefono)) {
+    alert("Ingrese un número válido.");
+    return;
+  }
+
+  // Formato E.164 sin "+"
+  telefono = normalizarTelefono(pais, telefono);
+
+  try {
+    const res = await fetch("http://localhost/MiniMarket/api/login2.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nombre, telefono })
+    });
+
+    const data = await res.json();
+
+    if (!data.success) {
+      alert("Error: " + data.error);
+      return;
+    }
+
+    // Guardar usuario
+   localStorage.setItem("usuario", JSON.stringify({
+  id: data.id,
+  nombre,
+  telefono,
+  avatar: avatarURL
+}));
+
+    location.href = "index.html";
+
+  } catch (e) {
+    alert("Error de conexión con el servidor.");
+    console.error(e);
+  }
+}
+</script>
+<script>
+document.addEventListener("DOMContentLoaded", mostrarOpcionesAvatar);
+</script>
+
+<!-- Registrar Service Worker -->
+<script>
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("service-worker.js")
+    .then(() => console.log("SW registrado en login"))
+    .catch(err => console.error("SW error", err));
+}
+</script>
+<script src="jquery-3.3.1.min.js<!--  -->"></script>
+<script src="bootstrap.min.js"></script>
+<script src="bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -3,11 +3,9 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-
 <title>MiniMarket PRO</title>
 
-<link rel="manifest" href="manifest.json">
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="bootstrap.min.css" rel="stylesheet">
 
 <style>
   body {
@@ -15,7 +13,6 @@
     font-family: 'Arial Rounded MT', sans-serif;
   }
 
-  /* HEADER */
   .top-banner {
     background: linear-gradient(135deg, #00b894, #019874);
     padding: 30px 20px;
@@ -37,7 +34,6 @@
     right: 15px;
   }
 
-  /* PRODUCT CARDS */
   .product-card {
     border-radius: 18px;
     background: white;
@@ -45,6 +41,7 @@
     height: 100%;
     box-shadow: 0 6px 18px rgba(0,0,0,0.12);
     transition: transform 0.2s;
+    cursor: pointer;
   }
 
   .product-card:hover {
@@ -80,7 +77,6 @@
     align-items: center;
   }
 
-  /* BOTÓN FLOTANTE */
   .btn-cart {
     position: fixed;
     bottom: 25px;
@@ -96,41 +92,26 @@
     z-index: 999;
   }
 
+  .cat-active {
+    background: #00b894 !important;
+    color: white !important;
+    border-color: #00a382 !important;
+  }
+
   /* DARK MODE */
-  body.dark {
-    background: #1e1e1e;
-    color: #eee;
-  }
-
-  .dark .product-card {
-    background: #2b2b2b;
-    box-shadow: 0 0 15px rgba(255,255,255,0.05);
-  }
-
-  .dark .top-banner {
-    background: linear-gradient(135deg, #202020, #111);
-  }
-
-  .dark .price-tag {
-    background: #444;
-  }
+  body.dark { background: #1e1e1e; color: #eee; }
+  .dark .product-card { background: #2b2b2b; box-shadow: 0 0 15px rgba(255,255,255,0.05); }
+  .dark .top-banner { background: linear-gradient(135deg, #222, #111); }
+  .dark .price-tag { background: #444; }
 </style>
 
-<script>
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("service-worker.js");
-}
-</script>
-
 </head>
-
 <body>
 
-<!-- HEADER -->
+<!-- ====================== HEADER ====================== -->
 <div class="top-banner mb-4">
-  
-  <button onclick="toggleDark()" 
-          class="btn btn-light btn-sm btn-dark-mode">
+
+  <button onclick="toggleDark()" class="btn btn-light btn-sm btn-dark-mode">
       🌙
   </button>
 
@@ -144,29 +125,52 @@ if ("serviceWorker" in navigator) {
   <div>Compra rápido y fácil</div>
 
   <div class="container mb-2">
-    <div id="userInfo" class="text-end small text-muted"></div>
+    <div id="userInfo" class="text-end small text-light d-flex align-items-center justify-content-end" style="gap:10px;">
+      <img id="userAvatar" 
+           src="" 
+           class="rounded-circle"
+           style="width:40px;height:40px;object-fit:cover;border:2px solid white;">
+      <span id="userNamePhone"></span>
+    </div>
   </div>
+
+  <button onclick="editarUsuario()" class="btn btn-warning btn-sm mt-2">
+    ✏️ Editar mis datos
+  </button>
+
+  <div class="container mt-3">
+    <a href="mispedidos.html" 
+       class="btn btn-light w-100 py-2 fw-bold shadow-sm"
+       style="border-radius: 14px;background: rgba(255,255,255,0.92);color:#019874;font-size: 18px;">
+        📦 Mis pedidos
+    </a>
+  </div>
+
 </div>
 
 <script>
-const u = JSON.parse(localStorage.getItem("usuario"));
-if(u){
-  document.getElementById("userInfo").innerHTML =
-    "👤 " + u.nombre + " • " + u.telefono;
-}
+// Cargar info de usuario en header
+document.addEventListener("DOMContentLoaded", () => {
+  try {
+    const u = JSON.parse(localStorage.getItem("usuario") || "null");
+    if (!u) return;
+
+    document.getElementById("userAvatar").src = u.avatar || " ";
+    document.getElementById("userNamePhone").textContent = `${u.nombre} • ${u.telefono}`;
+  } catch (e) {
+    console.error("Error cargando usuario:", e);
+  }
+});
 </script>
 
-<!-- CATEGORÍAS -->
+
+<!-- ====================== CATEGORÍAS ====================== -->
 <div class="container mb-3">
-  <div class="d-flex gap-2 overflow-auto pb-2">
-    <button class="btn btn-outline-success" onclick="filtrarCat('Todos')">Todos</button>
-    <button class="btn btn-outline-success" onclick="filtrarCat('Bebidas')">Bebidas</button>
-    <button class="btn btn-outline-success" onclick="filtrarCat('Panadería')">Panadería</button>
-    <button class="btn btn-outline-success" onclick="filtrarCat('Abarrotes')">Abarrotes</button>
-  </div>
+  <div id="catBtns" class="d-flex gap-2 overflow-auto pb-2"></div>
 </div>
 
-<!-- DELIVERY / RETIRO -->
+
+<!-- ====================== TIPO DE PEDIDO ====================== -->
 <div class="container mb-3">
   <select id="tipoPedido" class="form-select form-select-lg">
     <option value="retiro">🏪 Retiro en tienda</option>
@@ -174,30 +178,418 @@ if(u){
   </select>
 </div>
 
-<!-- BUSCADOR -->
+<script>
+// Guardar tipo pedido
+const tp = document.getElementById("tipoPedido");
+tp.value = localStorage.getItem("tipoPedido") || "retiro";
+tp.addEventListener("change", () => {
+  localStorage.setItem("tipoPedido", tp.value);
+});
+</script>
+
+
+<!-- ====================== BUSCADOR ====================== -->
 <div class="container mb-3">
   <input type="text" id="buscar" class="form-control form-control-lg"
          placeholder="🔍 Buscar productos..."
          oninput="filtrarProductos(this.value)">
 </div>
 
-<!-- PRODUCTOS -->
+
+<!-- ====================== PRODUCTOS ====================== -->
 <div class="container mb-5">
   <div class="row g-4" id="productos"></div>
 </div>
 
 <!-- Carrito flotante -->
-<a class="btn-cart" href="carrito.html">🛍</a>
-
-<script src="app.js"></script>
-
-</body>
+<a class="btn-cart" id="btnCarrito">🛍</a>
 
 <script>
-// Redirección si no está logueado
-if (!localStorage.getItem("usuario")) {
-  window.location.href = "login.html";
+  const btn = document.getElementById("btnCarrito");
+  btn.href = localStorage.getItem("editando") === "1"
+             ? "carrito.html?edit=1"
+             : "carrito.html";
+</script>
+
+
+<!-- ====================== APP.JS ====================== -->
+
+
+
+<!-- ====================== LÓGICA PRINCIPAL ====================== -->
+<script>
+// iniciar productos + categorías
+document.addEventListener("DOMContentLoaded", () => {
+  cargarProductos();
+  cargarBotonesCategorias();
+});
+
+// filtro texto
+function filtrarProductos(texto) {
+  window.filtroTexto = texto.toLowerCase();
+  aplicarFiltros();
+}
+
+// filtro categoría
+function filtrarCat(cat, btnElem) {
+  document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('cat-active'));
+  btnElem.classList.add('cat-active');
+
+  window.filtroCategoria = cat;
+  aplicarFiltros();
+}
+
+// aplicar filtros usando data-* de las cards
+function aplicarFiltros() {
+  const cards = document.querySelectorAll(".product-card");
+  const cat = window.filtroCategoria || "Todos";
+  const txt = (window.filtroTexto || "").toLowerCase();
+
+  cards.forEach(card => {
+    const ccat = card.dataset.cat || "";
+    const cname = (card.dataset.name || "").toLowerCase();
+
+    const okCat = (cat === "Todos" || cat === ccat);
+    const okTxt = cname.includes(txt);
+
+    card.style.display = (okCat && okTxt) ? "block" : "none";
+  });
 }
 </script>
 
+<!-- ====================== BOTONES CATEGORÍAS ====================== -->
+<script>
+async function cargarBotonesCategorias() {
+  try {
+    const r    = await fetch("http://localhost/MiniMarket/api/listarCategorias.php");
+    const cats = await r.json();
+
+    const cont = document.getElementById("catBtns");
+    if (!cont) return;
+
+    cont.innerHTML = `
+      <button class="btn btn-outline-success cat-btn cat-active"
+              onclick="filtrarCat('Todos', this)">
+        Todos
+      </button>
+    `;
+
+    cats.forEach(c => {
+      if (Number(c.activo) === 1) {
+        cont.innerHTML += `
+          <button class="btn btn-outline-success cat-btn"
+                  onclick="filtrarCat('${c.nombre}', this)">
+            ${c.nombre}
+          </button>
+        `;
+      }
+    });
+
+  } catch (e) {
+    console.error("Error cargando categorías:", e);
+  }
+}
+</script>
+
+<!-- ====================== DARK MODE ====================== -->
+<script>
+function toggleDark(){
+  document.body.classList.toggle("dark");
+  localStorage.setItem("darkmode", document.body.classList.contains("dark"));
+}
+if (localStorage.getItem("darkmode") === "true") {
+  document.body.classList.add("dark");
+}
+</script>
+
+<!-- ====================== EDITAR USUARIO (simple) ====================== -->
+<script>
+/*async function editarUsuario() {
+  const u = JSON.parse(localStorage.getItem("usuario") || "{}");
+
+  const nuevoNombre = prompt("Nuevo nombre:", u.nombre || "");
+  if (!nuevoNombre) return;
+
+  const nuevoTel = prompt("Nuevo teléfono (internacional):", u.telefono ? "+"+u.telefono : "+569");
+  if (!nuevoTel) return;
+
+  const nuevoAvatar = prompt("URL avatar (Cloudinary o similar):", u.avatar || "");
+
+  let telClean = nuevoTel.replace(/[\s\-()]/g, "");
+  if (!/^\+?\d{8,15}$/.test(telClean)) {
+    alert("Número inválido.");
+    return;
+  }
+  telClean = telClean.replace("+", "");
+
+  const actualizado = {
+    id: u.id,
+    nombre: nuevoNombre,
+    telefono: telClean,
+    avatar: nuevoAvatar
+  };
+
+  localStorage.setItem("usuario", JSON.stringify(actualizado));
+
+  try {
+    const res = await fetch("http://localhost/MiniMarket/api/updateUsuario.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(actualizado)
+    });
+    const data = await res.json();
+
+    if (!data.success) {
+      alert("Error al guardar en servidor: " + data.error);
+      return;
+    }
+
+    alert("Datos actualizados ✔");
+    location.reload();
+  } catch (e) {
+    alert("Error de conexión");
+    console.error(e);
+  }
+}*/
+
+/* ===========================================
+   AVATARES PREDEFINIDOS
+=========================================== */
+const avatares = [
+   "http://localhost/MiniMarket/img/avatar18_ibhr6v.png",
+  "http://localhost/MiniMarket/img/avatar19_jp5vr2.png",
+  "http://localhost/MiniMarket/img/avatar20_weeikg.png",
+  "http://localhost/MiniMarket/img/avatar17_ubirol.png",
+  "http://localhost/MiniMarket/img/avatar14_drp6wb.png",
+  "http://localhost/MiniMarket/img/avatar15_gyexku.png",
+  "http://localhost/MiniMarket/img/avatar16_ks63db.png",
+  "http://localhost/MiniMarket/img/avatar10_abnwb9.png",
+  "http://localhost/MiniMarket/img/avatar13_hrbesa.png",
+  "http://localhost/MiniMarket/img/avatar11_cnclyo.png",
+  "http://localhost/MiniMarket/img/avatar6_pppi62.png",
+  "http://localhost/MiniMarket/img/avatar12_vselyz.png",
+  "http://localhost/MiniMarket/img/avatar9_hb4lhx.png",
+  "http://localhost/MiniMarket/img/avatar8_xgh3a9.png",
+  "http://localhost/MiniMarket/img/avatar5_rtg7nd.png",
+  "http://localhost/MiniMarket/img/avatar4_vvxcsf.png",
+  "http://localhost/MiniMarket/img/avatar3_w1p55d.png",
+  "http://localhost/MiniMarket/img/avatar2_g6ynyq.png",
+  "http://localhost/MiniMarket/img/avatar7_m6lyhw.png",
+  "http://localhost/MiniMarket/img/avatar1_ciei4n.png"
+];
+
+let avatarSeleccionado = "";
+
+/* ===========================================
+   EDITAR USUARIO
+=========================================== */
+function editarUsuario() {
+  const u = JSON.parse(localStorage.getItem("usuario"));
+
+  avatarSeleccionado = u.avatar || "";
+
+  editAvatarPreview.src = avatarSeleccionado;
+  editNombre.value = u.nombre;
+  editTelefono.value = u.telefono;
+
+  new bootstrap.Modal(document.getElementById("modalEditarUsuario")).show();
+}
+
+/* ===========================================
+   MOSTRAR AVATARES PREDEFINIDOS
+=========================================== */
+function mostrarSelectorAvatares() {
+  const cont = document.getElementById("listaAvatares");
+  cont.innerHTML = "";
+
+  avatares.forEach(url => {
+    const img = document.createElement("img");
+    img.src = url;
+    img.style = `
+      width:70px;height:70px;border-radius:50%;
+      cursor:pointer;border:4px solid transparent
+    `;
+    img.onclick = () => {
+      avatarSeleccionado = url;
+      editAvatarPreview.src = url;
+    };
+    cont.appendChild(img);
+  });
+
+  new bootstrap.Modal(document.getElementById("modalAvatares")).show();
+}
+
+/* ===========================================
+   GUARDAR USUARIO (con foto o avatar)
+=========================================== */
+
+async function guardarCambiosUsuario() {
+
+  const u = JSON.parse(localStorage.getItem("usuario"));
+
+  let nombre = document.getElementById("editNombre").value.trim();
+  let tel = document.getElementById("editTelefono").value.trim();
+  let avatar = avatarSeleccionado; // puede ser base64 o ya URL
+
+  if (!nombre || !tel) {
+    alert("Completa todos los campos");
+    return;
+  }
+
+  tel = tel.replace(/\D/g, "");
+
+  // SI EL AVATAR ES BASE64 → subir al servidor
+  if (avatar.startsWith("data:image")) {
+    const subido = await subirAvatarLocal(avatar);
+    if (subido) avatar = subido;
+  }
+
+  const body = {
+    id: u.id,
+    nombre,
+    telefono: tel,
+    avatar
+  };
+
+  const res = await fetch("http://localhost/MiniMarket/api/updateUsuario.php", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(body)
+});
+
+const data = await res.json();
+
+if (!data.success) {
+  alert("Error: " + data.error);
+  return;
+}
+
+// ✅ Guardar lo que responde el servidor (incluye avatarFinal correcto)
+localStorage.setItem("usuario", JSON.stringify({
+  id: u.id,
+  nombre,
+  telefono: tel,
+  avatar: data.avatar   // ← esta es la clave del problema
+}));
+
+alert("Datos actualizados ✔");
+location.reload();
+
+}
+
+async function subirAvatarLocal(base64) {
+
+  try {
+    // Base64 → Blob
+    const res = await fetch(base64);
+    const blob = await res.blob();
+
+    const formData = new FormData();
+    formData.append("avatar", blob, "avatar.png");
+
+    const upload = await fetch("http://localhost/MiniMarket/api/uploadAvatar.php", {
+      method: "POST",
+      body: formData
+    });
+
+    const data = await upload.json();
+
+    if (!data.success) {
+      console.error("Error al subir avatar:", data.error);
+      alert("No se pudo subir el avatar.");
+      return null;
+    }
+
+    // 🔥 Devuelve la URL FINAL que se guardará en BD
+    return data.url;
+
+  } catch (e) {
+    console.error("Error en subirAvatarLocal():", e);
+    alert("Error interno al subir el avatar.");
+    return null;
+  }
+}
+
+
+
+function logout(){
+  localStorage.removeItem("usuario");
+  localStorage.removeItem("editando");
+  localStorage.removeItem("editarPedido");
+  localStorage.removeItem("carrito");
+  location.href = "login.html";
+}
+
+
+</script>
+<!-- ================================
+     MODAL: EDITAR USUARIO
+================================ -->
+<div class="modal fade" id="modalEditarUsuario" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title">Editar mis datos</h5>
+        <button class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+
+        <div class="text-center mb-3">
+          <img id="editAvatarPreview" class="rounded-circle"
+               style="width:110px;height:110px;object-fit:cover;border:4px solid #00b894;">
+        </div>
+
+        <!-- Botón seleccionar avatar predefinido -->
+        <div class="text-center mb-3">
+          <button class="btn btn-outline-success btn-sm" onclick="mostrarSelectorAvatares()">
+            Elegir avatar
+          </button>
+        </div>
+
+        <!-- Botón subir foto real -->
+        <div class="text-center mb-3">
+          <input type="file" id="inputFoto" accept="image/*" class="form-control">
+        </div>
+
+        <label class="form-label fw-bold">Nombre</label>
+        <input id="editNombre" class="form-control mb-3">
+
+        <label class="form-label fw-bold">Teléfono</label>
+        <input id="editTelefono" class="form-control mb-3" placeholder="+56912345678">
+
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button class="btn btn-success" onclick="guardarCambiosUsuario()">Guardar</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ================================
+     MODAL: AVATARES
+================================ -->
+<div class="modal fade" id="modalAvatares" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title">Seleccionar avatar</h5>
+        <button class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        <div id="listaAvatares" class="d-flex flex-wrap justify-content-center" style="gap:10px;"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+<script src="app.js"></script>
+<script src="bootstrap.bundle.min.js" type="text/javascript"></script>
+</body>
 </html>

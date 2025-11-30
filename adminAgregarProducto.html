@@ -3,104 +3,285 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Agregar Producto</title>
+<title>Administrar Productos</title>
 
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="bootstrap.min.css" rel="stylesheet">
 
 </head>
 <body class="p-3">
+
+<h3 class="mb-4">🛒 Administrar Productos</h3>
+
+<div class="card p-3 mb-4">
+  <h5 id="formTitulo">➕ Agregar Producto</h5>
+
+  <input type="hidden" id="idProducto">
+
+  <div class="mb-3">
+    <label class="form-label">Nombre</label>
+    <input id="nombre" class="form-control">
+  </div>
+
+  <div class="mb-3">
+    <label class="form-label">Precio</label>
+    <input id="precio" type="number" class="form-control">
+  </div>
+
+  <div class="mb-3">
+    <label class="form-label">Categoría</label>
+    <select id="categoria" class="form-control"></select>
+  </div>
+
+  <div class="mb-3">
+    <label class="form-label">Imagen</label>
+    <input id="imagen" type="file" accept="image/*" class="form-control">
+  </div>
+
+  <button onclick="guardar()" class="btn btn-success w-100 py-2">Guardar</button>
+</div>
+<hr class="my-4">
+
+<h3>📂 Categorías</h3>
+
+<div class="card p-3 mb-3">
+    <h5>➕ Agregar / Editar Categoría</h5>
+
+    <input type="hidden" id="catId">
+
+    <div class="mb-3">
+        <label class="form-label">Nombre categoría</label>
+        <input id="catNombre" class="form-control">
+    </div>
+
+    <button onclick="guardarCategoria()" class="btn btn-primary w-100">
+        Guardar Categoría
+    </button>
+</div>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Nombre</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+        </tr>
+    </thead>
+    <tbody id="tablaCategorias"></tbody>
+</table>
+
+<h4>📋 Productos registrados</h4>
+
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>IMG</th>
+      <th>Nombre</th>
+      <th>Precio</th>
+      <th>Categoría</th>
+      <th>Acciones</th>
+    </tr>
+  </thead>
+  <tbody id="tablaProductos"></tbody>
+</table>
+
 <script>
-// Protección básica sin servidor
-const params = new URLSearchParams(location.search);
-const key = params.get("clave");
+const API = "http://localhost/MiniMarket/api/";
+async function cargarCategorias() {
+    const r = await fetch(API + "listarCategorias.php");
+    const cats = await r.json();
 
-// Cambia la clave secreta aquí:
-const CLAVE_ADMIN = "777";
+    const sel = document.getElementById("categoria");
+    sel.innerHTML = "";
 
-if (key !== CLAVE_ADMIN) {
-    document.body.innerHTML =
-        "<h2 style='padding:20px; color:red;'>Acceso denegado ❌</h2>";
+   cats.forEach(c => {
+    sel.innerHTML += `<option value="${c.nombre}">${c.nombre}</option>`;
+  });
+
 }
-</script>
+document.addEventListener("DOMContentLoaded", () => {
+    cargarCategorias();       // para el select
+    cargarProductos();        // lista productos
+    cargarCategoriasPanel();  // lista categorías
+});
 
-<h3 class="mb-4">➕ Agregar Producto</h3>
+// =====================
+// LISTAR PRODUCTOS
+// =====================
+async function cargarProductos() {
+  const r = await fetch(API + "listarProductos.php");
+  const d = await r.json();
 
-<div class="mb-3">
-  <label class="form-label">Nombre</label>
-  <input id="nombre" class="form-control">
-</div>
+  let html = "";
 
-<div class="mb-3">
-  <label class="form-label">Precio</label>
-  <input id="precio" type="number" class="form-control">
-</div>
+  d.forEach(p => {
+    html += `
+      <tr>
+        <td><img src="http://localhost/MiniMarket/uploads/${p.imagen}" width="50"></td>
+        <td>${p.nombre}</td>
+        <td>$${p.precio}</td>
+        <td>${p.categoria}</td>
+        <td>
+          <button class="btn btn-warning btn-sm" onclick="editar(${p.id})">✏️ Editar</button>
+          <button class="btn btn-danger btn-sm" onclick="eliminar(${p.id})">🗑️ Eliminar</button>
+        </td>
+      </tr>
+    `;
+  });
 
-<div class="mb-3">
-  <label class="form-label">Categoría</label>
-  <select id="categoria" class="form-control">
-    <option>Bebidas</option>
-    <option>Panadería</option>
-    <option>Abarrotes</option>
-  </select>
-</div>
+  document.getElementById("tablaProductos").innerHTML = html;
+}
+async function cargarCategoriasPanel() {
+    const r = await fetch(API + "listarCategorias.php");
+    const cats = await r.json();
 
-<div class="mb-3">
-  <label class="form-label">Imagen</label>
-  <input id="imagen" type="file" accept="image/*" class="form-control">
-</div>
+    let html = "";
+    cats.forEach(c => {
+        html += `
+        <tr>
+            <td>${c.nombre}</td>
+            <td>${c.activo == 1 ? "🟢 Activa" : "🔴 Inactiva"}</td>
+            <td>
+                <button class="btn btn-warning btn-sm" onclick="editarCategoria(${c.id}, '${c.nombre}')">✏️ Editar</button>
+                <button class="btn btn-danger btn-sm" onclick="desactivarCategoria(${c.id})">❌ Desactivar</button>
+            </td>
+        </tr>
+        `;
+    });
 
-<button onclick="guardar()" class="btn btn-success w-100 py-2">Guardar Producto</button>
+    document.getElementById("tablaCategorias").innerHTML = html;
+}
 
-<script>
+// Para cargar el formulario al editar
+function editarCategoria(id, nombre) {
+    document.getElementById("catId").value = id;
+    document.getElementById("catNombre").value = nombre;
+}
+
+// Guardar o editar
+async function guardarCategoria() {
+    const id = document.getElementById("catId").value;
+    const nombre = document.getElementById("catNombre").value.trim();
+
+    if (!nombre) {
+        alert("Ingresa un nombre de categoría");
+        return;
+    }
+
+    const data = { id, nombre };
+
+    const r = await fetch(API + "guardarCategoria.php", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+    });
+
+    const d = await r.json();
+    alert(d.mensaje);
+
+    document.getElementById("catId").value = "";
+    document.getElementById("catNombre").value = "";
+
+    cargarCategorias(); // recarga SELECT del producto
+    cargarCategoriasPanel(); // recarga TABLA
+}
+
+// Desactivar
+async function desactivarCategoria(id) {
+    if (!confirm("¿Desactivar categoría?")) return;
+
+    const r = await fetch(API + "eliminarCategoria.php?id=" + id);
+    const d = await r.json();
+
+    alert(d.mensaje);
+    cargarCategoriasPanel();
+    cargarCategorias();
+}
+
+// =====================
+// CARGAR INFO PARA EDITAR
+// =====================
+async function editar(id) {
+  const r = await fetch(API + "obtenerProducto.php?id=" + id);
+  const p = await r.json();
+
+  document.getElementById("idProducto").value = p.id;
+  document.getElementById("nombre").value = p.nombre;
+  document.getElementById("precio").value = p.precio;
+  document.getElementById("categoria").value = p.categoria;
+
+  document.getElementById("formTitulo").innerText = "✏️ Editando producto";
+  window.scrollTo(0, 0);
+}
+
+// =====================
+// GUARDAR (AGREGAR O EDITAR)
+// =====================
 async function guardar() {
 
+  const id = document.getElementById("idProducto").value;
   const nombre = document.getElementById("nombre").value.trim();
   const precio = document.getElementById("precio").value;
   const categoria = document.getElementById("categoria").value;
   const imgFile = document.getElementById("imagen").files[0];
 
-  if (!nombre || !precio || !imgFile) {
-    alert("Completa todos los campos");
+  if (!nombre || !precio) {
+    alert("Completa todos los campos obligatorios");
     return;
   }
 
-  // 1. SUBIR IMAGEN
-  let form = new FormData();
-  form.append("imagen", imgFile);
+  let nombreImagen = null;
 
-  const r1 = await fetch("https://marketApp.kesug.com/api/subirImagen.php", {
+  if (imgFile) {
+    let form = new FormData();
+    form.append("imagen", imgFile);
+
+    const r1 = await fetch(API + "subirImagen.php", {
+      method: "POST",
+      body: form,
+      credentials: "include"
+    });
+
+    const d1 = await r1.json();
+    if (!d1.success) { alert("Error subiendo imagen"); return; }
+    nombreImagen = d1.archivo;
+  }
+
+  // OBJETO PARA ENVIAR
+  const body = { id, nombre, precio, categoria, imagen: nombreImagen };
+
+  const r2 = await fetch(API + "guardarEditarProducto.php", {
     method: "POST",
-    body: form
-  });
-
-  const d1 = await r1.json();
-  if (!d1.success) {
-    alert("Error subiendo imagen");
-    return;
-  }
-
-  const nombreImagen = d1.archivo;
-
-  // 2. GUARDAR PRODUCTO
-  const body = {
-    nombre,
-    precio,
-    categoria,
-    imagen: nombreImagen
-  };
-
-  const r2 = await fetch("https://marketApp.kesug.com/api/guardarProducto.php", {
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body: JSON.stringify(body)
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+    credentials: "include"
   });
 
   const d2 = await r2.json();
-  if (d2.success) {
-    alert("Producto agregado con éxito 🎉");
-  } else {
-    alert("Error guardando en base de datos");
-  }
+
+  alert(d2.mensaje);
+  cargarProductos();
+  cargarProductos();
+}
+function resetFormulario() {
+    document.getElementById("idProducto").value = "";
+    document.getElementById("nombre").value = "";
+    document.getElementById("precio").value = "";
+    document.getElementById("categoria").value = "Bebidas"; 
+    document.getElementById("imagen").value = "";
+    document.getElementById("formTitulo").innerText = "➕ Agregar Producto";
+}
+
+// =====================
+// ELIMINAR PRODUCTO
+// =====================
+async function eliminar(id) {
+  if (!confirm("¿Seguro de eliminar este producto?")) return;
+
+  const r = await fetch(API + "eliminarProducto.php?id=" + id);
+  const d = await r.json();
+
+  alert(d.mensaje);
+  cargarProductos();
 }
 </script>
 

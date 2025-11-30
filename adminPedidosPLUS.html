@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Admin • Pedidos PLUS ULTRA</title>
+<link href="bootstrap.min.css" rel="stylesheet">
+
+<style>
+body {
+  background: #eef2f3;
+  font-family: 'Arial Rounded MT', sans-serif;
+}
+
+/* HEADER */
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  background: #0d6efd;
+  color: white;
+  border-radius: 12px;
+  margin-bottom: 18px;
+}
+
+.topbar button {
+  background: white;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 8px;
+  font-size: 15px;
+}
+
+/* Layout */
+.container-pedidos {
+  display: flex;
+  gap: 20px;
+}
+
+/* LISTA IZQUIERDA */
+.lista {
+  width: 35%;
+  height: 88vh;
+  overflow-y: auto;
+  border-right: 3px solid #ddd;
+  padding-right: 10px;
+}
+
+/* Pedidos */
+.item-pedido {
+  background: white;
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  transition: 0.25s;
+  border-left: 6px solid #0d6efd;
+}
+
+.item-pedido:hover {
+  background: #eef6ff;
+}
+
+.item-activo {
+  background: #d9ecff !important;
+  border-left-color: #0069d9 !important;
+}
+
+/* Destacar nuevos */
+.item-nuevo {
+  animation: pulse 1s alternate infinite;
+  background: #c8f7c5 !important;
+}
+@keyframes pulse {
+  from { background: #d0ffd0; }
+  to { background:#ffffff; }
+}
+
+/* Estados */
+.badge-pendiente { background:#ffc107; }
+.badge-pagado { background:#55efc4; color:black; }
+.badge-anulado { background:#d63031; color:white; }
+
+.detalle {
+  width: 65%;
+  background: white;
+  border-radius: 15px;
+  padding: 20px;
+  min-height: 88vh;
+  box-shadow: 0 0 10px rgba(0,0,0,0.08);
+}
+
+.items { 
+  font-size: 14px; 
+  margin-left: 10px; 
+}
+
+/* Modo oscuro */
+.dark body {
+  background:#1e1e1e;
+}
+.dark .detalle, 
+.dark .item-pedido {
+  background:#2b2b2b;
+  color:white;
+}
+</style>
+</head>
+
+<body class="p-3">
+
+<div class="topbar">
+  <h3 class="m-0">📦 Admin Pedidos — PLUS ULTRA</h3>
+  <button onclick="toggleDark()">🌙 Modo oscuro</button>
+</div>
+
+<!-- FILTROS -->
+<div class="mb-3 d-flex gap-2">
+  <button class="btn btn-outline-primary" onclick="setFiltro('todos')">Todos</button>
+  <button class="btn btn-outline-warning" onclick="setFiltro('pendiente')">Pendientes</button>
+  <button class="btn btn-outline-success" onclick="setFiltro('pagado')">Pagados</button>
+  <button class="btn btn-outline-danger" onclick="setFiltro('anulado')">Anulados</button>
+</div>
+
+<div class="container-pedidos">
+  
+  <!-- LISTA IZQUIERDA -->
+  <div class="lista" id="listaPedidos"></div>
+
+  <!-- PANEL DERECHA -->
+  <div class="detalle" id="detallePedido">
+    <h4 class="text-muted">Selecciona un pedido →</h4>
+  </div>
+
+</div>
+
+<!-- AUDIO -->
+<audio id="sonidoNuevo">
+  <source src="alert1.mp3" type="audio/mp3">
+</audio>
+
+<script>
+let pedidos = [];
+let pedidosPrevios = [];
+let filtro = "todos";
+
+// =========================
+// CARGAR PEDIDOS
+// =========================
+async function cargar() {
+  try {
+    const res = await fetch("http://localhost/MiniMarket/api/getPedidosAdmin.php");
+    const data = await res.json();
+
+    if (!data.success) return;
+
+    pedidosPrevios = [...pedidos];
+    pedidos = data.pedidos;
+
+    detectarNuevos();
+    renderLista();
+
+  } catch(e) { console.error(e); }
+}
+
+// =========================
+// DETECTAR NUEVOS
+// =========================
+function detectarNuevos() {
+  const prevIDs = pedidosPrevios.map(p => p.id);
+  const nuevos = pedidos.filter(p => !prevIDs.includes(p.id));
+
+  if (nuevos.length > 0) {
+    document.getElementById("sonidoNuevo").play();
+  }
+}
+
+// =========================
+// RENDER LISTA IZQUIERDA
+// =========================
+function renderLista() {
+  const div = document.getElementById("listaPedidos");
+  div.innerHTML = "";
+
+  pedidos
+    .filter(p => filtro === "todos" || p.estado === filtro)
+    .forEach(p => {
+
+    const badge =
+      p.estado === "pendiente" ? "badge-pendiente" :
+      p.estado === "pagado" ? "badge-pagado" : "badge-anulado";
+
+    let nuevoClass = "";
+    if (!pedidosPrevios.find(x => x.id === p.id)) {
+      nuevoClass = "item-nuevo";
+      setTimeout(() => {
+        const el = document.getElementById("item" + p.id);
+        if (el) el.classList.remove("item-nuevo");
+      }, 5000);
+    }
+
+    div.innerHTML += `
+      <div class="item-pedido ${nuevoClass}" onclick="verPedido(${p.id})" id="item${p.id}">
+        <b>#${p.id}</b> — ${p.usuario}<br>
+        <small>${p.tipo} | $${p.total} | ${p.hora_entrega ?? "Sin hora"}</small><br>
+        <span class="badge ${badge}">${p.estado}</span>
+      </div>
+    `;
+  });
+}
+
+// =========================
+// PANEL DERECHA
+// =========================
+function verPedido(id) {
+
+  document.querySelectorAll(".item-pedido").forEach(
+    el => el.classList.remove("item-activo")
+  );
+  document.getElementById("item" + id).classList.add("item-activo");
+
+  const p = pedidos.find(x => x.id == id);
+
+  let itemsHtml = "";
+  p.items.forEach(i => {
+    itemsHtml += `<div class="items">• ${i.nombre} (x${i.cantidad}) — $${i.subtotal}</div>`;
+  });
+
+  document.getElementById("detallePedido").innerHTML = `
+    <h3>Pedido #${p.id}</h3>
+    
+    <p><b>Cliente:</b> ${p.usuario}</p>
+    <p><b>Teléfono:</b> <a href="https://wa.me/${p.telefono}" target="_blank">📱 ${p.telefono}</a></p>
+
+    <p><b>Tipo:</b> ${p.tipo}</p>
+
+    ${p.tipo === "delivery" ? `
+      <p><b>Dirección:</b> ${p.direccion}</p>
+      <p><b>Receptor:</b> ${p.receptor}</p>
+    ` : ""}
+
+    <p><b>Método de pago:</b> ${p.metodo}</p>
+    <p><b>Hora entrega:</b> ${p.hora_entrega ?? "No especificada"}</p>
+    <p><b>Total:</b> $${p.total}</p>
+
+    <hr>
+
+    <h5>Items</h5>
+    ${itemsHtml}
+
+    <hr>
+
+    <label class="fw-bold">Estado:</label>
+    <select id="estadoNuevo" class="form-select w-50 mb-3">
+      <option value="pendiente" ${p.estado=="pendiente"?'selected':''}>Pendiente</option>
+      <option value="pagado" ${p.estado=="pagado"?'selected':''}>Pagado</option>
+      <option value="anulado" ${p.estado=="anulado"?'selected':''}>Anulado</option>
+    </select>
+
+    <button onclick="actualizar(${p.id})" class="btn btn-primary">
+      Guardar cambios
+    </button>
+  `;
+}
+
+// =========================
+// ACTUALIZAR ESTADO
+// =========================
+async function actualizar(id) {
+ const nuevo = document.getElementById("estadoNuevo").value;
+
+  fetch("http://localhost/MiniMarket/api/updateEstado.php", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      id: id,
+      estado: nuevo
+    })
+  })
+  .then(r => r.json())
+  .then(res => {
+    if (!res.success) {
+      alert("Error: " + res.error);
+      return;
+    }
+
+    alert("Estado actualizado ✔");
+    cargar();
+  })
+  .catch(err => {
+    console.error("Error:", err);
+    alert("No se pudo conectar con el servidor");
+  });
+  cargar();
+}
+
+// =========================
+// FILTRO
+// =========================
+function setFiltro(f) {
+  filtro = f;
+  renderLista();
+}
+
+// =========================
+// DARK MODE
+// =========================
+function toggleDark() {
+  document.body.classList.toggle("dark");
+}
+
+cargar();
+setInterval(cargar, 6000);
+</script>
+
+</body>
+</html>

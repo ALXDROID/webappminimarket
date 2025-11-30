@@ -6,7 +6,7 @@
 
 <title>Carrito • MiniMarket</title>
 
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="bootstrap.min.css" rel="stylesheet">
 
 <style>
   body {
@@ -14,7 +14,6 @@
     font-family: 'Arial Rounded MT', sans-serif;
   }
 
-  /* HEADER */
   .top-banner {
     background: linear-gradient(135deg, #00b894, #019874);
     padding: 30px 20px;
@@ -36,7 +35,6 @@
     right: 15px;
   }
 
-  /* ITEM CARRITO */
   .cart-item {
     background: white;
     border-radius: 15px;
@@ -71,7 +69,6 @@
     color: white;
   }
 
-  /* TOTAL */
   .total-box {
     background: white;
     padding: 20px;
@@ -79,68 +76,165 @@
     box-shadow: 0 5px 15px rgba(0,0,0,0.12);
   }
 
-  /* DARK MODE */
-  body.dark {
-    background: #1e1e1e;
-    color: #eee;
-  }
-
+  body.dark { background:#1e1e1e; color:#eee; }
   .dark .cart-item,
-  .dark .total-box {
-    background: #2b2b2b;
-    box-shadow: 0 0 15px rgba(255,255,255,0.05);
-  }
-
-  .dark .top-banner {
-    background: linear-gradient(135deg, #222, #111);
-  }
-
+  .dark .total-box { background:#2b2b2b; }
+  .dark .top-banner { background:linear-gradient(135deg,#222,#111); }
 </style>
-
 </head>
+
 <body>
+
+<!-- BANNER EDITANDO -->
+<div id="editBanner" style="
+  display:none;
+  background:#00b894;
+  color:white;
+  padding:12px;
+  text-align:center;
+  font-weight:bold;">
+  EDITANDO PEDIDO #<span id="banID"></span> — Puedes modificar productos
+</div>
+
+<!-- BOTÓN AGREGAR PRODUCTOS EN MODO EDICIÓN -->
+<div id="btnAgregarEdit" style="display:none;" class="text-center mt-3 mb-3">
+  <button onclick="agregarProductos()" 
+          class="btn btn-primary btn-lg fw-bold">
+    ➕ Agregar más productos
+  </button>
+</div>
 
 <!-- HEADER -->
 <div class="top-banner mb-4">
-  <button onclick="toggleDark()" 
-          class="btn btn-light btn-sm btn-dark-mode">🌙</button>
-
+  <button onclick="toggleDark()" class="btn btn-light btn-sm btn-dark-mode">🌙</button>
   <div class="banner-title">🛍 Tu Carrito</div>
   <div>Revisa tu pedido antes de continuar</div>
 </div>
 
+<!-- BOTÓN EDITAR USUARIO -->
+<button onclick="editarUsuario()" class="btn btn-warning btn-sm mt-2">
+  ✏️ Editar mis datos
+</button>
+
+<!-- LISTA DEL CARRITO -->
 <div class="container mb-4">
   <div id="listaCarrito"></div>
 </div>
 
-<!-- TOTAL -->
+<!-- TOTAL Y PAGO -->
 <div class="container mb-5">
   <div class="total-box">
     <h4>Total a pagar:</h4>
     <h2 id="total" class="text-success fw-bold">$0</h2>
 
-    <button onclick="enviarPedido()" class="btn btn-success w-100 py-3 fs-5 mt-3">
+    <!-- MÉTODO DE PAGO -->
+    <div class="mb-3">
+      <label class="form-label fw-bold">Método de pago</label>
+      <select id="metodoPago" class="form-select form-select-lg">
+        <option value="efectivo">💵 Efectivo</option>
+        <option value="paypal">💳 PayPal</option>
+      </select>
+    </div>
+
+    <!-- DELIVERY -->
+    <div id="deliveryData" style="display:none;">
+      <label class="form-label fw-bold">Dirección</label>
+      <input id="dirEntrega" class="form-control mb-2">
+
+      <label class="form-label fw-bold">Receptor</label>
+      <input id="nomEntrega" class="form-control mb-2">
+
+      <label class="form-label fw-bold">Teléfono</label>
+      <input id="telEntrega" class="form-control mb-2" placeholder="+56 9 ...">
+    </div>
+
+    <!-- HORA -->
+    <div class="mb-3">
+      <label class="form-label fw-bold">Hora estimada</label>
+      <input type="time" id="horaEntrega" class="form-control form-control-lg"
+             min="09:30" max="22:00" required>
+      <small class="text-muted">Horario permitido: 09:30 a 22:00</small>
+    </div>
+
+    <button id="btnFinal" onclick="finalizarAccion()" 
+            class="btn btn-success w-100 py-3 fs-5 mt-3">
       Confirmar Pedido 🔥
     </button>
+
   </div>
 </div>
 
+<!-- APP CORE (productos, carrito base, noti, etc.) -->
 <script src="app.js"></script>
 
 <script>
-// -------------------------
-// MOSTRAR CARRITO PRO
-// -------------------------
+/* ============================================================
+   MODO EDICIÓN
+============================================================ */
+const urlParams  = new URLSearchParams(window.location.search);
+const editMode   = urlParams.get("edit") === "1";
+let editPedidoID = localStorage.getItem("editarPedido");
+
+// Mostrar banner si estamos editando
+if (editMode && editPedidoID) {
+  document.getElementById("editBanner").style.display = "block";
+  document.getElementById("banID").textContent = editPedidoID;
+  document.getElementById("btnAgregarEdit").style.display = "block";
+}
+
+/* ============================================================
+   CARGAR PEDIDO PARA EDITAR
+============================================================ */
+async function cargarPedidoParaEditar(idPedido) {
+  try {
+    const res  = await fetch("http://localhost/MiniMarket/api/getPedidoCompleto.php?id=" + idPedido);
+    const data = await res.json();
+
+    if (!data.success) {
+      alert("No se pudo cargar el pedido.");
+      return;
+    }
+    if (!data.editable) {
+      alert("Este pedido ya no se puede editar.");
+      return;
+    }
+
+    let carrito = [];
+    data.items.forEach(i => {
+      carrito.push({ id: Number(i.id), cantidad: Number(i.cantidad) });
+    });
+
+    guardarCarrito(carrito);
+    mostrarCarritoPro();
+
+  } catch (e) {
+    console.error(e);
+    alert("Error al cargar pedido.");
+  }
+}
+
+// Botón agregar más productos
+function agregarProductos() {
+  localStorage.setItem("editando", "1");
+  localStorage.setItem("editarPedido", editPedidoID);
+  location.href = "index.html?edit=1";
+}
+
+/* ============================================================
+   MOSTRAR CARRITO COMPLETO
+============================================================ */
 function mostrarCarritoPro() {
   const div = document.getElementById("listaCarrito");
   div.innerHTML = "";
 
   let carrito = obtenerCarrito();
-  let total = 0;
+  let total   = 0;
 
   carrito.forEach(item => {
-    let p = productos.find(x => x.id === item.id);
-    let subtotal = p.precio * item.cantidad;
+    const p = productos.find(x => x.id === item.id);
+    if (!p) return;
+
+    const subtotal = p.precio * item.cantidad;
     total += subtotal;
 
     div.innerHTML += `
@@ -163,60 +257,64 @@ function mostrarCarritoPro() {
     `;
   });
 
-  // Total
   document.getElementById("total").textContent = "$" + total;
 }
 
-// -------------------------
-// SUMAR
-// -------------------------
+/* ============================================================
+   SUMAR / RESTAR / ELIMINAR
+============================================================ */
 function sumar(id) {
-  let carrito = obtenerCarrito();
-  let item = carrito.find(x => x.id === id);
-  item.cantidad++;
-  guardarCarrito(carrito);
+  let c = obtenerCarrito();
+  let it = c.find(x => x.id == id);
+  if (!it) return;
+  it.cantidad++;
+  guardarCarrito(c);
   mostrarCarritoPro();
 }
 
-// -------------------------
-// RESTAR
-// -------------------------
 function restar(id) {
-  let carrito = obtenerCarrito();
-  let item = carrito.find(x => x.id === id);
+  let c = obtenerCarrito();
+  let it = c.find(x => x.id == id);
+  if (!it) return;
 
-  if (item.cantidad > 1) {
-    item.cantidad--;
-  } else {
-    carrito = carrito.filter(x => x.id !== id);
-  }
+  if (it.cantidad > 1) it.cantidad--;
+  else c = c.filter(x => x.id != id);
 
-  guardarCarrito(carrito);
+  guardarCarrito(c);
   mostrarCarritoPro();
 }
 
-// -------------------------
-// ELIMINAR
-// -------------------------
 function eliminar(id) {
-  let carrito = obtenerCarrito().filter(x => x.id !== id);
-  guardarCarrito(carrito);
+  let c = obtenerCarrito().filter(x => x.id != id);
+  guardarCarrito(c);
   mostrarCarritoPro();
 }
 
-// -------------------------
-// ENVIAR PEDIDO
-// -------------------------
+/* ============================================================
+   FINALIZAR ACCIÓN
+============================================================ */
+function finalizarAccion() {
+  const editando = localStorage.getItem("editando") === "1";
+  if (editando && editPedidoID) {
+    guardarEdicion();
+  } else {
+    enviarPedido();
+  }
+}
+
+/* ============================================================
+   ENVIAR NUEVO PEDIDO
+============================================================ */
 async function enviarPedido() {
 
   const usuario = JSON.parse(localStorage.getItem("usuario") || "null");
   if (!usuario) {
-    alert("Debes iniciar sesión para enviar un pedido.");
+    alert("Debes iniciar sesión.");
     location.href = "login.html";
     return;
   }
 
-  const tipo = localStorage.getItem("tipoPedido") || "retiro";
+  const tipo    = localStorage.getItem("tipoPedido") || "retiro";
   const carrito = obtenerCarrito();
 
   if (carrito.length === 0) {
@@ -224,92 +322,287 @@ async function enviarPedido() {
     return;
   }
 
-  // --- Construcción de pedido ---
+  const metodo = document.getElementById("metodoPago").value;
+  const hora   = document.getElementById("horaEntrega").value.trim();
+  if (!hora) {
+    alert("Debes elegir hora.");
+    return;
+  }
+
+  let entrega = null;
+  if (tipo === "delivery") {
+    entrega = {
+      direccion: document.getElementById("dirEntrega").value.trim(),
+      nombre:    document.getElementById("nomEntrega").value.trim(),
+      telefono:  document.getElementById("telEntrega").value.trim()
+    };
+    if (!entrega.direccion || !entrega.nombre || !entrega.telefono) {
+      alert("Debe completar los datos de entrega.");
+      return;
+    }
+  }
+
   const body = {
-    id_usuario: usuario.id,     // viene desde login.php backend
-    tipo_pedido: tipo,          // "retiro" o "delivery"
-    items: carrito              // [{id, cantidad}]
+    id_usuario:  usuario.id,
+    tipo_pedido: tipo,
+    metodo_pago: metodo,
+    entrega,
+    hora,
+    items: carrito
   };
 
   try {
-    const res = await fetch("https://marketApp.kesug.com/api/crearPedido.php", {
+    const res  = await fetch("http://localhost/MiniMarket/api/createPedido.php", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body)
     });
-
     const data = await res.json();
 
     if (!data.success) {
-      alert("Error al enviar pedido: " + (data.error || "Desconocido"));
+      alert("Error: " + data.error);
       return;
     }
 
-    // --- Limpiar carrito ---
     localStorage.removeItem("carrito");
+    localStorage.removeItem("editando");
+    localStorage.removeItem("editarPedido");
 
-    // --- Guardar historial local (opcional) ---
-    let hist = JSON.parse(localStorage.getItem("historial") || "[]");
-    hist.push({
-      id_pedido: data.id_pedido,
-      total: data.total,
-      fecha: new Date().toLocaleString()
-    });
-    localStorage.setItem("historial", JSON.stringify(hist));
-
-    // --- Notificación bonita ---
-    noti("Pedido Nº " + data.id_pedido + " enviado 🎉");
-
-    // --- Redirigir ---
-    setTimeout(() => {
-      location.href = "index.html";
-    }, 1400);
+    alert("Pedido Nº " + data.id_pedido + " enviado ✔");
+    location.href = "index.html";
 
   } catch (e) {
-    alert("Error de conexión con el servidor.");
     console.error(e);
+    alert("Error de conexión al enviar pedido.");
+  }
+}
+
+/* ============================================================
+   GUARDAR EDICIÓN
+============================================================ */
+async function guardarEdicion() {
+  const carrito = obtenerCarrito();
+
+  if (carrito.length === 0) {
+    alert("El carrito está vacío.");
+    return;
   }
 
+  const body = {
+    id_pedido: Number(editPedidoID),
+    items: carrito
+  };
+
+  try {
+    const res  = await fetch("http://localhost/MiniMarket/api/updatePedido.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+
+    if (!data.success) {
+      alert("Error: " + data.error);
+      return;
+    }
+
+    alert("Pedido actualizado ✔");
+    localStorage.removeItem("editarPedido");
+    localStorage.removeItem("editando");
+    location.href = "mispedidos.html";
+
+  } catch (e) {
+    console.error(e);
+    alert("Error al actualizar pedido.");
+  }
 }
-function noti(msg){
-  const box = document.createElement("div");
-  box.style.position = "fixed";
-  box.style.bottom = "20px";
-  box.style.left = "50%";
-  box.style.transform = "translateX(-50%)";
-  box.style.background = "#00b894";
-  box.style.color = "white";
-  box.style.padding = "15px 25px";
-  box.style.borderRadius = "12px";
-  box.style.boxShadow = "0 6px 18px rgba(0,0,0,0.25)";
-  box.style.zIndex = "9999";
-  box.style.fontSize = "18px";
-  box.innerText = msg;
 
-  document.body.appendChild(box);
-  navigator.vibrate?.(80);
-
-  setTimeout(() => box.remove(), 2000);
-}
-
-/*function enviarPedido() {
+/* ============================================================
+   MOSTRAR / OCULTAR DATOS DELIVERY
+============================================================ */
+function syncDeliveryPanel() {
   const tipo = localStorage.getItem("tipoPedido") || "retiro";
-  alert("Pedido enviado (" + tipo + ")");
-    let total = document.getElementById("total").textContent.replace("$","");
-  let hist = JSON.parse(localStorage.getItem("historial") || "[]");
+  const box  = document.getElementById("deliveryData");
+  box.style.display = (tipo === "delivery") ? "block" : "none";
+}
 
-  hist.push({
-    fecha: new Date().toLocaleString(),
-    total
+/* ============================================================
+   EDITAR USUARIO (simple)
+============================================================ */
+/*async function editarUsuario() {
+  const u = JSON.parse(localStorage.getItem("usuario") || "{}");
+
+  const nuevoNombre = prompt("Nuevo nombre:", u.nombre || "");
+  if (!nuevoNombre) return;
+
+  const nuevoTel = prompt("Nuevo teléfono (internacional):", u.telefono ? "+"+u.telefono : "+569");
+  if (!nuevoTel) return;
+
+  const nuevoAvatar = prompt("URL avatar:", u.avatar || "");
+
+  let telClean = nuevoTel.replace(/[\s\-()]/g, "");
+  if (!/^\+?\d{8,15}$/.test(telClean)) {
+    alert("Número inválido.");
+    return;
+  }
+  telClean = telClean.replace("+", "");
+
+  const actualizado = {
+    id: u.id,
+    nombre: nuevoNombre,
+    telefono: telClean,
+    avatar: nuevoAvatar
+  };
+
+  localStorage.setItem("usuario", JSON.stringify(actualizado));
+
+  try {
+    const res = await fetch("http://localhost/MiniMarket/api/updateUsuario.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(actualizado)
+    });
+    const data = await res.json();
+    if (!data.success) {
+      alert("Error servidor: " + data.error);
+      return;
+    }
+    alert("Datos actualizados ✔");
+  } catch (e) {
+    alert("Error de conexión");
+    console.error(e);
+  }
+}*/
+const avatares = [
+   "http://localhost/MiniMarket/img/avatar18_ibhr6v.png",
+  "http://localhost/MiniMarket/img/avatar19_jp5vr2.png",
+  "http://localhost/MiniMarket/img/avatar20_weeikg.png",
+  "http://localhost/MiniMarket/img/avatar17_ubirol.png",
+  "http://localhost/MiniMarket/img/avatar14_drp6wb.png",
+  "http://localhost/MiniMarket/img/avatar15_gyexku.png",
+  "http://localhost/MiniMarket/img/avatar16_ks63db.png",
+  "http://localhost/MiniMarket/img/avatar10_abnwb9.png",
+  "http://localhost/MiniMarket/img/avatar13_hrbesa.png",
+  "http://localhost/MiniMarket/img/avatar11_cnclyo.png",
+  "http://localhost/MiniMarket/img/avatar6_pppi62.png",
+  "http://localhost/MiniMarket/img/avatar12_vselyz.png",
+  "http://localhost/MiniMarket/img/avatar9_hb4lhx.png",
+  "http://localhost/MiniMarket/img/avatar8_xgh3a9.png",
+  "http://localhost/MiniMarket/img/avatar5_rtg7nd.png",
+  "http://localhost/MiniMarket/img/avatar4_vvxcsf.png",
+  "http://localhost/MiniMarket/img/avatar3_w1p55d.png",
+  "http://localhost/MiniMarket/img/avatar2_g6ynyq.png",
+  "http://localhost/MiniMarket/img/avatar7_m6lyhw.png",
+  "http://localhost/MiniMarket/img/avatar1_ciei4n.png"
+];
+
+let avatarSeleccionado = "";
+
+/* ===========================================
+   EDITAR USUARIO
+=========================================== */
+function editarUsuario() {
+  const u = JSON.parse(localStorage.getItem("usuario"));
+
+  avatarSeleccionado = u.avatar || "img/avatar1_ciei4n.png";
+
+  editAvatarPreview.src = avatarSeleccionado;
+  editNombre.value = u.nombre;
+  editTelefono.value = u.telefono;
+
+  new bootstrap.Modal(document.getElementById("modalEditarUsuario")).show();
+}
+
+/* ===========================================
+   MOSTRAR AVATARES PREDEFINIDOS
+=========================================== */
+function mostrarSelectorAvatares() {
+  const cont = document.getElementById("listaAvatares");
+  cont.innerHTML = "";
+
+  avatares.forEach(url => {
+    const img = document.createElement("img");
+    img.src = url;
+    img.style = `
+      width:70px;height:70px;border-radius:50%;
+      cursor:pointer;border:4px solid transparent
+    `;
+    img.onclick = () => {
+      avatarSeleccionado = url;
+      editAvatarPreview.src = url;
+    };
+    cont.appendChild(img);
   });
 
-  localStorage.setItem("historial", JSON.stringify(hist));
-  alert("Pedido registrado 🎉");
-}*/
+  new bootstrap.Modal(document.getElementById("modalAvatares")).show();
+}
 
-// -------------------------
-// DARK MODE
-// -------------------------
+/* ===========================================
+   GUARDAR USUARIO (con foto o avatar)
+=========================================== */
+async function guardarCambiosUsuario() {
+  const u = JSON.parse(localStorage.getItem("usuario"));
+
+  const nombre = editNombre.value.trim();
+  let telefono = editTelefono.value.trim().replace(/\D/g, "");
+
+  if (!nombre || !telefono) return alert("Completa todos los campos");
+
+  let avatarFinal = avatarSeleccionado;
+
+  // 1) Si el usuario seleccionó una foto real
+  const archivo = document.getElementById("inputFoto").files[0];
+
+  if (archivo) {
+    const f = new FormData();
+    f.append("foto", archivo);
+    f.append("id_usuario", u.id);
+
+    let r = await fetch("http://localhost/MiniMarket/api/uploadAvatar.php", {
+      method: "POST",
+      body: f
+    });
+
+    const resFoto = await r.json();
+
+    if (resFoto.success) {
+      avatarFinal = resFoto.url; // URL del archivo subido
+    } else {
+      alert("Error subiendo foto: " + resFoto.error);
+      return;
+    }
+  }
+
+  // 2) Actualizar usuario
+  const dataUser = {
+    id: u.id,
+    nombre,
+    telefono,
+    avatar: avatarFinal
+  };
+
+  const r2 = await fetch("http://localhost/MiniMarket/api/updateUsuario.php", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(dataUser)
+  });
+
+  const resUpd = await r2.json();
+
+  if (!resUpd.success) {
+    alert("Error servidor: " + resUpd.error);
+    return;
+  }
+
+  // 3) Guardar local
+  localStorage.setItem("usuario", JSON.stringify(dataUser));
+
+  alert("Datos actualizados ✔");
+  location.reload();
+}
+/* ============================================================
+   DARK MODE
+============================================================ */
 function toggleDark(){
   document.body.classList.toggle("dark");
   localStorage.setItem("darkmode", document.body.classList.contains("dark"));
@@ -318,9 +611,106 @@ if (localStorage.getItem("darkmode") === "true") {
   document.body.classList.add("dark");
 }
 
-// cargar carrito al entrar
-mostrarCarritoPro();
-</script>
+/* ============================================================
+   INIT
+============================================================ */
+document.addEventListener("DOMContentLoaded", async () => {
+syncDeliveryPanel();
+  await cargarProductos();
 
+  const editMode = new URLSearchParams(location.search).get("edit") === "1";
+  const editPedidoID = localStorage.getItem("editarPedido");
+
+  if (editMode && editPedidoID) {
+
+      const skip = localStorage.getItem("skipReload") === "1";
+
+      if (!skip) {
+        // Primera vez → cargamos datos del pedido original
+        await cargarPedidoParaEditar(editPedidoID);
+      } else {
+        // Las siguientes veces → mostrar carrito modificado
+        mostrarCarritoPro();
+      }
+
+      // limpiar skip para que no afecte futuros accesos
+      localStorage.removeItem("skipReload");
+  } 
+  else {
+    // No es modo edición → carrito normal
+    mostrarCarritoPro();
+  }
+
+});
+
+</script>
+<!-- ================================
+     MODAL: EDITAR USUARIO
+================================ -->
+<div class="modal fade" id="modalEditarUsuario" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title">Editar mis datos</h5>
+        <button class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+
+        <div class="text-center mb-3">
+          <img id="editAvatarPreview" class="rounded-circle"
+               style="width:110px;height:110px;object-fit:cover;border:4px solid #00b894;">
+        </div>
+
+        <!-- Botón seleccionar avatar predefinido -->
+        <div class="text-center mb-3">
+          <button class="btn btn-outline-success btn-sm" onclick="mostrarSelectorAvatares()">
+            Elegir avatar
+          </button>
+        </div>
+
+        <!-- Botón subir foto real -->
+        <div class="text-center mb-3">
+          <input type="file" id="inputFoto" accept="image/*" class="form-control">
+        </div>
+
+        <label class="form-label fw-bold">Nombre</label>
+        <input id="editNombre" class="form-control mb-3">
+
+        <label class="form-label fw-bold">Teléfono</label>
+        <input id="editTelefono" class="form-control mb-3" placeholder="+56912345678">
+
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button class="btn btn-success" onclick="guardarCambiosUsuario()">Guardar</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ================================
+     MODAL: AVATARES
+================================ -->
+<div class="modal fade" id="modalAvatares" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title">Seleccionar avatar</h5>
+        <button class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        <div id="listaAvatares" class="d-flex flex-wrap justify-content-center" style="gap:10px;"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+<script src="bootstrap.bundle.min.js" type="text/javascript"></script>
 </body>
 </html>

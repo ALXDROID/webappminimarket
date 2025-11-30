@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Login • MiniMarket</title>
+<link rel="manifest" href="manifest.json">
+<link href="bootstrap.min.css" rel="stylesheet">
+<!-- <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"> -->
+
+<style>
+body {
+  background: linear-gradient(135deg, #00b894, #019874);
+  font-family: 'Arial Rounded MT', sans-serif;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.login-box {
+  background: white;
+  padding: 30px;
+  border-radius: 20px;
+  width: 90%;
+  max-width: 380px;
+  box-shadow: 0px 6px 20px rgba(0,0,0,0.25);
+}
+
+.login-box h2 {
+  font-weight: bold;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.btn-login {
+  background: #00b894;
+  color: white;
+  font-size: 20px;
+  padding: 12px;
+  border-radius: 10px;
+  border: none;
+}
+
+.avatar-option {
+  transition: transform 0.15s;
+}
+
+.avatar-option:hover {
+  transform: scale(1.05);
+}
+</style>
+</head>
+
+<body>
+
+<div class="login-box">
+  <h2>Bienvenido 👋</h2>
+
+  <div class="avatar-box text-center mb-3">
+
+    <!-- CLICK PARA CARGAR FOTO -->
+    <div onclick="document.getElementById('fileAvatar').click()" style="cursor:pointer;">
+      <img id="avatarPreview"
+           src="https://res.cloudinary.com/dppte9etd/image/upload/v1764310339/avatar18_ibhr6v.png"
+           class="rounded-circle"
+           style="width:120px;height:120px;object-fit:cover;border:4px solid #00b894">
+      <div id="avatarText" class="mt-2 text-muted">Agregar avatar</div>
+    </div>
+
+    <!-- INPUT FILE (OCULTO) -->
+    <input type="file" id="fileAvatar" accept="image/*" style="display:none" onchange="cargarAvatarLocal(event)">
+  </div>
+
+  <!-- Nombre -->
+  <input id="nombre" class="form-control form-control-lg mb-3" placeholder="Tu nombre">
+
+  <!-- Telefono + País -->
+  <div class="input-group mb-4">
+    <span class="input-group-text" id="flag-box" style="font-size: 24px;">🇨🇱</span>
+
+    <select id="pais" class="form-select" style="max-width: 110px;">
+      <option value="+56" data-flag="🇨🇱">🇨🇱 +56</option>
+      <option value="+54" data-flag="🇦🇷">🇦🇷 +54</option>
+      <option value="+51" data-flag="🇵🇪">🇵🇪 +51</option>
+      <option value="+591" data-flag="🇧🇴">🇧🇴 +591</option>
+      <option value="+55" data-flag="🇧🇷">🇧🇷 +55</option>
+      <option value="+34" data-flag="🇪🇸">🇪🇸 +34</option>
+      <option value="+1" data-flag="🇺🇸">🇺🇸 +1</option>
+    </select>
+
+    <input id="telefono" type="tel" class="form-control form-control-lg" placeholder="">
+  </div>
+
+  <button onclick="login()" class="btn btn-login w-100">Ingresar</button>
+</div>
+
+<script>
+let avatarURL =
+  "http://localhost/MiniMarket/img/avatar17_ubirol.png";
+
+document.getElementById("pais").addEventListener("change", function () {
+  const flag = this.options[this.selectedIndex].dataset.flag;
+  document.getElementById("flag-box").textContent = flag;
+});
+
+function validarTelefonoInternacional(tel) {
+  tel = tel.replace(/\D/g, "");
+  return tel.length >= 8 && tel.length <= 15;
+}
+
+function normalizarTelefono(pais, tel) {
+  tel = tel.replace(/\D/g, "");
+  return pais.replace("+", "") + tel;
+}
+
+// Previsualizar foto local
+function cargarAvatarLocal(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    avatarURL = e.target.result;
+    document.getElementById("avatarPreview").src = avatarURL;
+    document.getElementById("avatarText").innerText = "Avatar cargado ✓";
+  };
+  reader.readAsDataURL(file);
+}
+
+// SUBIR A CLOUDINARY
+/*async function subirAvatarACloudinary(base64) {
+  const formData = new FormData();
+  formData.append("file", base64);
+  formData.append("upload_preset", "ml_default"); 
+  formData.append("cloud_name", "dppte9etd");
+
+  const res = await fetch(
+    "https://api.cloudinary.com/v1_1/dppte9etd/image/upload",
+    { method: "POST", body: formData }
+  );
+
+  const data = await res.json();
+  return data.secure_url;
+}*/
+async function subirAvatarLocal(base64) {
+  // Convertir Base64 → archivo .png
+  const res = await fetch(base64);
+  const blob = await res.blob();
+  const formData = new FormData();
+  formData.append("avatar", blob, "avatar.png");
+
+  const upload = await fetch("http://localhost/Minimarket/api/uploadAvatar.php", {
+    method: "POST",
+    body: formData
+  });
+
+  const data = await upload.json();
+  return data.url; // http://localhost/Minimarket/img/xxxx.png
+}
+
+async function login() {
+  const nombre = document.getElementById("nombre").value.trim();
+  const pais = document.getElementById("pais").value;
+  let telefono = document.getElementById("telefono").value.trim();
+
+  if (!nombre || !telefono) {
+    alert("Completa todos los campos");
+    return;
+  }
+
+  if (!validarTelefonoInternacional(telefono)) {
+    alert("Número inválido");
+    return;
+  }
+
+  telefono = normalizarTelefono(pais, telefono);
+
+  // SUBIR FOTO SI ES BASE64
+  /*let avatarFinal = avatarURL;
+
+  if (avatarURL.startsWith("data:image")) {
+    avatarFinal = await subirAvatarACloudinary(avatarURL);
+  }*/
+// SUBIR FOTO LOCAL AL SERVIDOR
+let avatarFinal = avatarURL;
+
+if (avatarURL.startsWith("data:image")) {
+  avatarFinal = await subirAvatarLocal(avatarURL);
+}
+
+  try {
+    const res = await fetch("http://localhost/Minimarket/api/login2.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nombre, telefono, avatar: avatarFinal })
+    });
+
+    const data = await res.json();
+
+    if (!data.success) {
+      alert("Error: " + data.error);
+      return;
+    }
+
+    localStorage.setItem("usuario", JSON.stringify({
+      id: data.id,
+      nombre: data.nombre,
+      telefono: data.telefono,
+      avatar: avatarFinal
+    }));
+
+    location.href = "index.html";
+
+  } catch (e) {
+    console.error(e);
+    alert("Error al conectar con el servidor.");
+  }
+}
+</script>
+
+</body>
+</html>

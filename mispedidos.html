@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>📦 Mis Pedidos</title>
+
+<link href="bootstrap.min.css" rel="stylesheet">
+
+<style>
+body {
+  background: #f2f2f2;
+  font-family: 'Arial Rounded MT', sans-serif;
+}
+
+.header-box {
+  background: linear-gradient(135deg, #00b894, #019874);
+  padding: 25px;
+  color: #fff;
+  border-bottom-left-radius: 25px;
+  border-bottom-right-radius: 25px;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+}
+
+.pedido-card {
+  background: white;
+  border-radius: 18px;
+  padding: 20px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.12);
+}
+
+.badge-estado {
+  font-size: 14px;
+  padding: 6px 10px;
+  border-radius: 10px;
+}
+
+.btn-edit {
+  background: #00b894;
+  color: white;
+  border-radius: 12px;
+  width: 100%;
+  padding: 10px;
+}
+
+.btn-cancel {
+  background: #ff7675;
+  color: white;
+  border-radius: 12px;
+  width: 100%;
+  padding: 10px;
+}
+
+.dark body { background: #1e1e1e; color: #eee; }
+</style>
+</head>
+
+<body>
+
+<div class="header-box mb-4">
+  <h2 class="fw-bold">📦 Mis pedidos</h2>
+  <p>Revisa el estado, modifica o anula mientras no estén procesados.</p>
+  <button class="btn btn-light btn-sm" onclick="history.back()">⬅ Volver</button>
+</div>
+
+<div class="container">
+  <div id="listaPedidos"></div>
+</div>
+
+<script>
+// ===========================
+// CARGAR PEDIDOS DEL USUARIO
+// ===========================
+async function cargarPedidos() {
+
+  const usuario = JSON.parse(localStorage.getItem("usuario") || "null");
+  if (!usuario) {
+    alert("Debes iniciar sesión.");
+    location.href = "login.html";
+    return;
+  }
+
+  const res = await fetch("http://localhost/MiniMarket/api/getMisPedidos.php?id=" + usuario.id);
+  const data = await res.json();
+
+  const lista = document.getElementById("listaPedidos");
+  lista.innerHTML = "";
+
+  if (!data.success || data.pedidos.length === 0) {
+    lista.innerHTML = `<p class="text-center mt-5">Aún no tienes pedidos 😢</p>`;
+    return;
+  }
+
+  data.pedidos.forEach(p => {
+
+    let editable = p.es_editable;
+    let estadoColor = {
+      pendiente: "badge bg-warning",
+      pagado: "badge bg-success",
+      anulado: "badge bg-danger"
+    }[p.estado] || "badge bg-secondary";
+
+    let botones = "";
+
+    if (editable) {
+      botones = `
+        <button 
+  class="btn btn-warning w-100 fw-bold py-2"
+  onclick="editarPedido(${p.id})">
+  ✏ Editar pedido
+</button>
+
+        <button class="btn-cancel" onclick="anular(${p.id})">❌ Anular pedido</button>
+      `;
+    } else {
+      botones = `<p class="text-muted small">No editable (pagado o <30 min)</p>`;
+    }
+
+    const card = `
+      <div class="pedido-card mb-3">
+        <h5>Pedido #${p.id}</h5>
+        <span class="${estadoColor}">${p.estado.toUpperCase()}</span>
+        <p class="mt-2"><b>Tipo:</b> ${p.tipo}</p>
+        <p><b>Total:</b> $${p.total}</p>
+        <p><b>Hora entrega:</b> ${p.hora_entrega}</p>
+        <p><b>Restan:</b> ${p.minutos_restantes} min</p>
+
+        <h6 class="mt-3">Items</h6>
+        <ul>
+          ${p.items.map(i => `<li>${i.nombre} x${i.cantidad} — $${i.subtotal}</li>`).join("")}
+        </ul>
+
+        ${botones}
+      </div>
+    `;
+
+    lista.innerHTML += card;
+  });
+}
+
+// ===========================
+// EDITAR
+// ===========================
+/*function editar(id) {
+  localStorage.setItem("editarPedido", id);
+  location.href = "carrito.html?edit=1";*/
+//}
+function editarPedido(id) {
+  localStorage.setItem("editando", "1");
+  localStorage.setItem("editarPedido", id);
+  window.location.href = "carrito.html?edit=1";
+}
+
+
+// ===========================
+// ANULAR PEDIDO
+// ===========================
+async function anular(id) {
+  if (!confirm("¿Seguro que deseas anular este pedido?")) return;
+
+  const f = new FormData();
+  f.append("id", id);
+
+  const res = await fetch("http://localhost/MiniMarket/api/anularPedido.php", {
+    method: "POST",
+    body: f
+  });
+
+  const data = await res.json();
+
+  if (!data.success) {
+    alert("Error: " + data.error);
+    return;
+  }
+
+  alert("Pedido anulado.");
+  cargarPedidos();
+}
+
+// REFRESCAR CADA 8 SEG
+setInterval(cargarPedidos, 8000);
+
+cargarPedidos();
+</script>
+
+</body>
+</html>
