@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Login • MiniMarket</title>
 <link rel="manifest" href="manifest.json">
-<link href="bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 
 <style>
 body {
@@ -24,21 +24,23 @@ body {
   width: 90%;
   max-width: 380px;
   box-shadow: 0px 6px 20px rgba(0,0,0,0.25);
-  animation: aparecer 0.5s ease;
 }
 
-@keyframes aparecer {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
+.login-box h2 {
+  font-weight: bold;
+  margin-bottom: 20px;
+  text-align: center;
 }
 
-.avatar-option {
-  transition: transform 0.15s, border 0.15s;
+.btn-login {
+  background: #00b894;
+  color: white;
+  font-size: 20px;
+  padding: 12px;
+  border-radius: 10px;
+  border: none;
 }
 
-.avatar-option:hover {
-  transform: scale(1.05);
-}
 </style>
 </head>
 
@@ -47,264 +49,55 @@ body {
 <div class="login-box">
   <h2>Bienvenido 👋</h2>
 
-  <div class="text-center mb-3">
+  <input id="nombre" class="form-control form-control-lg mb-3"
+         placeholder="Tu nombre">
 
-    <!-- Imagen principal -->
-    <div onclick="toggleAvatares()" style="cursor:pointer;">
-      <img id="avatarPreview"
-           src="http://localhost/MiniMarket/img/avatar17_ubirol.png"
-           class="rounded-circle"
-           style="width:120px;height:120px;object-fit:cover;border:4px solid #00b894;transition:0.2s ease;">
-      <div id="avatarText" class="mt-2 text-muted">Elige / cambia tu avatar</div>
-    </div>
-
-    <!-- Botón Subir Foto -->
-    <button onclick="document.getElementById('fileAvatar').click()" 
-            class="btn btn-sm mt-2"
-            style="background:#00b894;color:white;">
-      📁 Subir foto
-    </button>
-
-    <!-- Tomar Foto con la Cámara -->
-    <button onclick="document.getElementById('cameraAvatar').click()" 
-            class="btn btn-sm mt-2 ms-2"
-            style="background:#0284c7;color:white;">
-      📸 Tomar foto
-    </button>
-
-    <!-- INPUT FILE (SUBIR FOTO) -->
-    <input type="file" id="fileAvatar" accept="image/*" style="display:none" onchange="cargarAvatarLocal(event)">
-
-    <!-- INPUT CÁMARA -->
-    <input type="file" id="cameraAvatar" accept="image/*" capture="camera" style="display:none" onchange="cargarAvatarLocal(event)">
-
-    <!-- PARRILLA DE AVATARES -->
-    <div id="avatarOptions"
-         class="d-flex flex-wrap justify-content-center mt-3"
-         style="gap:8px; display:none;">
-    </div>
-
-  </div>
-
-  <!-- Nombre -->
-  <input id="nombre" class="form-control form-control-lg mb-3" placeholder="Tu nombre">
-
-  <!-- Telefono + País -->
-  <div class="input-group mb-4">
-    <span class="input-group-text" id="flag-box" style="font-size: 24px;">🇨🇱</span>
-
-    <select id="pais" class="form-select" style="max-width: 110px;">
-      <option value="+56" data-flag="🇨🇱">🇨🇱 +56</option>
-      <option value="+54" data-flag="🇦🇷">🇦🇷 +54</option>
-      <option value="+51" data-flag="🇵🇪">🇵🇪 +51</option>
-      <option value="+591" data-flag="🇧🇴">🇧🇴 +591</option>
-      <option value="+55" data-flag="🇧🇷">🇧🇷 +55</option>
-      <option value="+34" data-flag="🇪🇸">🇪🇸 +34</option>
-      <option value="+1" data-flag="🇺🇸">🇺🇸 +1</option>
-    </select>
-
-    <input id="telefono" type="tel" class="form-control form-control-lg" placeholder="">
-  </div>
+  <input id="telefono" type="tel" class="form-control form-control-lg mb-4"
+         placeholder="Teléfono">
 
   <button onclick="login()" class="btn btn-login w-100">Ingresar</button>
 </div>
-
 <script>
-// ======================================================
-// AVATARES PREDEFINIDOS
-// ======================================================
-let avatares = [
-  "http://localhost/MiniMarket/img/avatar18_ibhr6v.png",
-  "http://localhost/MiniMarket/img/avatar19_jp5vr2.png",
-  "http://localhost/MiniMarket/img/avatar20_weeikg.png",
-  "http://localhost/MiniMarket/img/avatar17_ubirol.png",
-  "http://localhost/MiniMarket/img/avatar14_drp6wb.png",
-  "http://localhost/MiniMarket/img/avatar15_gyexku.png",
-  "http://localhost/MiniMarket/img/avatar16_ks63db.png",
-  "http://localhost/MiniMarket/img/avatar10_abnwb9.png",
-  "http://localhost/MiniMarket/img/avatar13_hrbesa.png",
-  "http://localhost/MiniMarket/img/avatar11_cnclyo.png",
-  "http://localhost/MiniMarket/img/avatar6_pppi62.png",
-  "http://localhost/MiniMarket/img/avatar12_vselyz.png",
-  "http://localhost/MiniMarket/img/avatar9_hb4lhx.png",
-  "http://localhost/MiniMarket/img/avatar8_xgh3a9.png",
-  "http://localhost/MiniMarket/img/avatar5_rtg7nd.png",
-  "http://localhost/MiniMarket/img/avatar4_vvxcsf.png",
-  "http://localhost/MiniMarket/img/avatar3_w1p55d.png",
-  "http://localhost/MiniMarket/img/avatar2_g6ynyq.png",
-  "http://localhost/MiniMarket/img/avatar7_m6lyhw.png",
-  "http://localhost/MiniMarket/img/avatar1_ciei4n.png"
-];
-
-let avatarURL = avatares[0];
-let avataresCargados = false;
-
-// ======================================================
-// MOSTRAR / OCULTAR PARRILLA DE AVATARES
-// ======================================================
-function toggleAvatares() {
-  const cont = document.getElementById("avatarOptions");
-
-  if (!avataresCargados) {
-    cargarParrillaAvatares();
-    avataresCargados = true;
-  }
-
-  cont.style.display = cont.style.display === "flex" ? "none" : "flex";
-  document.getElementById("avatarText").innerText =
-    cont.style.display === "flex" ? "Elige tu avatar" : "Elige / cambia tu avatar";
-}
-
-// ======================================================
-// CARGAR AVATARES
-// ======================================================
-function cargarParrillaAvatares() {
-  const cont = document.getElementById("avatarOptions");
-  cont.innerHTML = "";
-
-  avatares.forEach((url, i) => {
-    const img = document.createElement("img");
-    img.src = url;
-    img.className = "rounded-circle avatar-option";
-    img.style = "width:50px;height:50px;object-fit:cover;cursor:pointer;border:2px solid transparent";
-    img.onclick = () => seleccionarAvatar(i);
-    cont.appendChild(img);
-  });
-}
-
-// ======================================================
-// SELECCIONAR AVATAR PREDEFINIDO
-// ======================================================
-function seleccionarAvatar(i) {
-  avatarURL = avatares[i];
-  document.getElementById("avatarPreview").src = avatarURL;
-
-  const opciones = document.querySelectorAll(".avatar-option");
-  opciones.forEach((op, idx) => {
-    op.style.border = idx === i ? "2px solid #00b894" : "2px solid transparent";
-  });
-
-  document.getElementById("avatarText").innerText = "Avatar listo ✓";
-}
-
-// ======================================================
-// SUBIR FOTO LOCAL
-// ======================================================
-function cargarAvatarLocal(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    avatarURL = e.target.result;
-    document.getElementById("avatarPreview").src = avatarURL;
-    document.getElementById("avatarText").innerText = "Foto cargada ✓";
-  };
-  reader.readAsDataURL(file);
-}
-
-// ======================================================
-// SUBIR FOTO AL SERVIDOR
-// ======================================================
-async function subirAvatarLocal(base64) {
-
-  // Base64 → Blob
-  const res = await fetch(base64);
-  const blob = await res.blob();
-
-  const formData = new FormData();
-  formData.append("avatar", blob, "avatar.png");
-
-  const upload = await fetch("http://localhost/MiniMarket/api/uploadAvatar.php", {
-    method: "POST",
-    body: formData
-  });
-
-  const data = await upload.json();
-
-  if (!data.success) {
-    alert("Error al subir avatar");
-    return null;
-  }
-
-  return data.url; // ← devuelve "uploads/xxxx.png"
-}
-
-
-// ======================================================
-// UTILIDADES
-// ======================================================
-function validarTelefonoInternacional(tel) {
-  tel = tel.replace(/\D/g, "");
-  return tel.length >= 8 && tel.length <= 15;
-}
-
-function normalizarTelefono(pais, tel) {
-  tel = tel.replace(/\D/g, "");
-  return pais.replace("+", "") + tel;
-}
-
-document.getElementById("pais").addEventListener("change", function () {
-  document.getElementById("flag-box").textContent =
-    this.options[this.selectedIndex].dataset.flag;
-});
-
-// ======================================================
-// LOGIN FINAL
-// ======================================================
-async function login() {
+async function login(){
   const nombre = document.getElementById("nombre").value.trim();
-  const pais = document.getElementById("pais").value;
-  let telefono = document.getElementById("telefono").value.trim();
+  const telefono = document.getElementById("telefono").value.trim();
 
-  if (!nombre || !telefono) {
+  if(nombre === "" || telefono === ""){
     alert("Completa todos los campos");
     return;
   }
 
-  if (!validarTelefonoInternacional(telefono)) {
-    alert("Número inválido");
-    return;
-  }
-
-  telefono = normalizarTelefono(pais, telefono);
-
-  let avatarFinal = avatarURL;
-
-  // Subir foto si es base64
-  if (avatarURL.startsWith("data:image")) {
-    avatarFinal = await subirAvatarLocal(avatarURL);
-  }
-
   try {
-    const res = await fetch("http://localhost/MiniMarket/api/login2.php", {
+    const res = await fetch("https://marketapp.kesug.com/api/login2.php", {
       method: "POST",
       headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({ nombre, telefono, avatar: avatarFinal })
+      body: JSON.stringify({ nombre, telefono })
     });
 
     const data = await res.json();
 
     if (!data.success) {
-      alert("Error: " + data.error);
+      alert("Error: " + (data.error || "No se pudo iniciar sesión"));
       return;
     }
 
+    // Guardar usuario REAL
     localStorage.setItem("usuario", JSON.stringify({
       id: data.id,
-      nombre: data.nombre,
-      telefono: data.telefono,
-      avatar: data.avatar
+      nombre: nombre,
+      telefono: telefono
     }));
 
-    location.href = "index.html";
+    window.location.href = "index.html";
 
   } catch (e) {
-    alert("Error al conectar con el servidor.");
-    console.error(e);
+    alert("Error conectando con el servidor");
   }
 }
+
 </script>
+
+
 
 </body>
 </html>
